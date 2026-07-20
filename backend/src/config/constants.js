@@ -1,0 +1,7 @@
+export const CONSTANTS = {
+  DEFAULT_CURRENCY: 'USD',
+  PAGINATION: {
+    DEFAULT_PAGE: 1,
+    DEFAULT_LIMIT: 10,
+  },
+};

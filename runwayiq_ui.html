@@ -1,0 +1,1060 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>RunwayIQ</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+    <script src="https://unpkg.com/@phosphor-icons/web"></script>
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <style>
+        :root {
+            --primary: #22C55E;
+            --primary-light: #dcfce7;
+            --secondary: #111111;
+            --bg-color: #F8F9FB;
+            --surface: #FFFFFF;
+            --text-main: #111111;
+            --text-muted: #6b7280;
+            --accent-blue: #3b82f6;
+            --error: #ef4444;
+            --border-color: #e5e7eb;
+            --radius-sm: 12px;
+            --radius-md: 20px;
+            --radius-lg: 24px;
+            --shadow-sm: 0 4px 6px -1px rgba(0, 0, 0, 0.05);
+            --shadow-md: 0 10px 15px -3px rgba(0, 0, 0, 0.05);
+            --shadow-lg: 0 20px 25px -5px rgba(0, 0, 0, 0.05);
+            --transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+        }
+
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+            font-family: 'Inter', sans-serif;
+            -webkit-tap-highlight-color: transparent;
+        }
+
+        body {
+            background-color: #e5e5e5;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            min-height: 100vh;
+        }
+
+        /* Phone Device Mockup */
+        .device-frame {
+            width: 390px;
+            height: 844px;
+            background: var(--bg-color);
+            border-radius: 40px;
+            box-shadow: 0 0 0 12px #000, 0 30px 40px rgba(0, 0, 0, 0.2);
+            position: relative;
+            overflow: hidden;
+        }
+
+        /* Dynamic Island / Notch area */
+        .notch {
+            position: absolute;
+            top: 0;
+            left: 50%;
+            transform: translateX(-50%);
+            width: 150px;
+            height: 30px;
+            background: #000;
+            border-bottom-left-radius: 20px;
+            border-bottom-right-radius: 20px;
+            z-index: 100;
+        }
+
+        .screen-container {
+            width: 100%;
+            height: 100%;
+            position: relative;
+            overflow-x: hidden;
+            overflow-y: auto;
+            scroll-behavior: smooth;
+            padding-bottom: 90px; /* Space for bottom nav */
+        }
+        
+        .screen-container::-webkit-scrollbar {
+            display: none;
+        }
+
+        .page {
+            display: none;
+            width: 100%;
+            min-height: 100%;
+            animation: fadeIn 0.4s ease forwards;
+            padding: 60px 20px 20px;
+        }
+
+        .page.active {
+            display: block;
+        }
+
+        @keyframes fadeIn {
+            from { opacity: 0; transform: translateY(10px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+
+        /* Common Elements */
+        h1, h2, h3 { color: var(--text-main); font-weight: 700; }
+        p { color: var(--text-muted); font-size: 14px; }
+        
+        .card {
+            background: var(--surface);
+            border-radius: var(--radius-md);
+            padding: 20px;
+            box-shadow: var(--shadow-sm);
+            margin-bottom: 16px;
+            transition: var(--transition);
+        }
+
+        .card:hover {
+            box-shadow: var(--shadow-md);
+            transform: translateY(-2px);
+        }
+
+        .btn {
+            background: var(--primary);
+            color: white;
+            border: none;
+            border-radius: 100px;
+            padding: 16px;
+            font-size: 16px;
+            font-weight: 600;
+            width: 100%;
+            cursor: pointer;
+            transition: var(--transition);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 8px;
+        }
+
+        .btn:hover { background: #1ea34d; }
+        .btn:active { transform: scale(0.98); }
+        
+        .btn-outline {
+            background: transparent;
+            color: var(--text-main);
+            border: 1px solid var(--border-color);
+        }
+        
+        .btn-outline:hover { background: #f3f4f6; }
+
+        /* --- 1. Splash Screen --- */
+        #screen-splash {
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+            align-items: center;
+            background: var(--secondary);
+            padding: 0;
+            height: 100%;
+        }
+        .splash-logo {
+            width: 120px;
+            height: 120px;
+            border-radius: 30px;
+            margin-bottom: 24px;
+        }
+        .splash-text {
+            color: white;
+            text-align: center;
+            font-size: 16px;
+            max-width: 80%;
+            line-height: 1.5;
+            margin-bottom: 40px;
+        }
+        .loader {
+            width: 40px;
+            height: 4px;
+            background: rgba(255,255,255,0.2);
+            border-radius: 4px;
+            overflow: hidden;
+            position: relative;
+        }
+        .loader::after {
+            content: '';
+            position: absolute;
+            left: 0;
+            top: 0;
+            height: 100%;
+            width: 50%;
+            background: var(--primary);
+            border-radius: 4px;
+            animation: loadAnim 1.5s infinite ease-in-out;
+        }
+        @keyframes loadAnim {
+            0% { transform: translateX(-100%); }
+            100% { transform: translateX(200%); }
+        }
+
+        /* --- 2. Login Screen --- */
+        #screen-login {
+            padding-top: 100px;
+        }
+        .login-illustration {
+            width: 100%;
+            height: 200px;
+            object-fit: cover;
+            border-radius: var(--radius-md);
+            margin-bottom: 32px;
+        }
+        .input-group {
+            margin-bottom: 16px;
+        }
+        .input-group label {
+            display: block;
+            font-size: 14px;
+            font-weight: 500;
+            margin-bottom: 8px;
+            color: var(--text-main);
+        }
+        .input-group input {
+            width: 100%;
+            padding: 16px;
+            border: 1px solid var(--border-color);
+            border-radius: var(--radius-sm);
+            font-size: 16px;
+            outline: none;
+            transition: var(--transition);
+        }
+        .input-group input:focus {
+            border-color: var(--primary);
+            box-shadow: 0 0 0 3px var(--primary-light);
+        }
+
+        /* --- 3. Dashboard --- */
+        .top-bar {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 24px;
+        }
+        .top-bar-left h2 { font-size: 20px; }
+        .top-bar-left p { font-size: 14px; }
+        .top-bar-right {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+        }
+        .avatar {
+            width: 40px;
+            height: 40px;
+            border-radius: 50%;
+            background: var(--primary-light);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            color: var(--primary);
+            font-weight: 600;
+        }
+        
+        .metric-grid {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 16px;
+            margin-bottom: 16px;
+        }
+        .metric-card {
+            background: var(--surface);
+            padding: 16px;
+            border-radius: var(--radius-md);
+            box-shadow: var(--shadow-sm);
+        }
+        .metric-card.highlight {
+            background: var(--secondary);
+            color: white;
+        }
+        .metric-card.highlight h3, .metric-card.highlight p { color: white; }
+        .metric-card p { margin-bottom: 4px; font-size: 12px; }
+        .metric-card h3 { font-size: 22px; margin-bottom: 4px; }
+        .trend { font-size: 12px; display: flex; align-items: center; gap: 4px; }
+        .trend.up { color: var(--primary); }
+        .trend.down { color: var(--error); }
+
+        .ai-insight {
+            background: linear-gradient(135deg, #f0fdf4 0%, #dcfce7 100%);
+            border: 1px solid #bbf7d0;
+            display: flex;
+            gap: 16px;
+            align-items: center;
+        }
+        .ai-insight i { font-size: 24px; color: var(--primary); }
+
+        .chart-container {
+            width: 100%;
+            height: 200px;
+            position: relative;
+        }
+
+        /* --- 4. Funding Screen --- */
+        .investor-card {
+            display: flex;
+            align-items: center;
+            gap: 16px;
+            margin-bottom: 12px;
+        }
+        .investor-logo {
+            width: 48px;
+            height: 48px;
+            border-radius: var(--radius-sm);
+            background: #f3f4f6;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 20px;
+        }
+        .investor-info { flex: 1; }
+        .investor-info h4 { font-size: 16px; margin-bottom: 2px; }
+        .investor-info p { font-size: 12px; }
+        .investor-amount { text-align: right; }
+        .investor-amount h4 { font-size: 16px; color: var(--primary); }
+
+        .fab {
+            position: absolute;
+            bottom: 100px;
+            right: 20px;
+            width: 56px;
+            height: 56px;
+            border-radius: 28px;
+            background: var(--primary);
+            color: white;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 24px;
+            box-shadow: 0 4px 12px rgba(34, 197, 94, 0.4);
+            cursor: pointer;
+            z-index: 10;
+        }
+
+        /* --- 8. Runway Analysis Screen --- */
+        .circular-progress-container {
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            margin: 32px 0;
+            position: relative;
+        }
+        .progress-text {
+            position: absolute;
+            text-align: center;
+        }
+        .progress-text h2 { font-size: 36px; color: var(--primary); line-height: 1; }
+        .progress-text p { font-size: 14px; }
+        
+        .simulation-card {
+            border: 1px solid var(--border-color);
+            background: transparent;
+            cursor: pointer;
+        }
+        .simulation-card.active {
+            border-color: var(--primary);
+            background: var(--primary-light);
+        }
+
+        /* --- 9. AI Advisor --- */
+        .chat-area {
+            display: flex;
+            flex-direction: column;
+            gap: 16px;
+            margin-bottom: 24px;
+        }
+        .chat-bubble {
+            max-width: 85%;
+            padding: 16px;
+            border-radius: 20px;
+            line-height: 1.5;
+            font-size: 14px;
+        }
+        .chat-ai {
+            background: var(--surface);
+            border-bottom-left-radius: 4px;
+            align-self: flex-start;
+            box-shadow: var(--shadow-sm);
+        }
+        .chat-user {
+            background: var(--primary);
+            color: white;
+            border-bottom-right-radius: 4px;
+            align-self: flex-end;
+        }
+
+        /* Bottom Navigation */
+        .bottom-nav {
+            position: absolute;
+            bottom: 20px;
+            left: 20px;
+            right: 20px;
+            background: var(--secondary);
+            border-radius: 100px;
+            display: flex;
+            justify-content: space-between;
+            padding: 8px;
+            box-shadow: 0 10px 25px rgba(0,0,0,0.2);
+            z-index: 50;
+        }
+        .nav-item {
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            width: 50px;
+            height: 50px;
+            border-radius: 25px;
+            color: #9ca3af;
+            cursor: pointer;
+            transition: var(--transition);
+            font-size: 24px;
+        }
+        .nav-item.active {
+            background: var(--primary);
+            color: white;
+        }
+
+        /* Helper Classes */
+        .mb-2 { margin-bottom: 8px; }
+        .mb-4 { margin-bottom: 16px; }
+        .mb-6 { margin-bottom: 24px; }
+        .flex-between { display: flex; justify-content: space-between; align-items: center; }
+        
+        /* 5. Employees & 6. Expenses simple lists */
+        .list-item { display: flex; align-items: center; gap: 16px; padding: 12px 0; border-bottom: 1px solid var(--border-color); }
+        .list-item:last-child { border-bottom: none; }
+        .icon-box { width: 40px; height: 40px; border-radius: 12px; display: flex; align-items: center; justify-content: center; font-size: 20px; background: #f3f4f6; }
+
+    </style>
+</head>
+<body>
+
+    <div class="device-frame">
+        <div class="notch"></div>
+        
+        <div class="screen-container">
+            
+            <!-- 1. Splash Screen -->
+            <div id="screen-splash" class="page">
+                <img src="runwayiq_logo.jpg" alt="RunwayIQ Logo" class="splash-logo" onerror="this.src='https://placehold.co/120x120/111/22C55E?text=RIQ'">
+                <p class="splash-text">Know how long your startup can survive, grow, and raise.</p>
+                <div class="loader"></div>
+            </div>
+
+            <!-- 2. Login Screen -->
+            <div id="screen-login" class="page">
+                <img src="login_illustration.jpg" alt="Login Illustration" class="login-illustration" onerror="this.src='https://placehold.co/400x200/e5e7eb/6b7280?text=Startup+Illustration'">
+                <h1 class="mb-2">Welcome back</h1>
+                <p class="mb-6">Sign in to your RunwayIQ dashboard</p>
+
+                <div class="input-group">
+                    <label>Email</label>
+                    <input type="email" placeholder="founder@startup.com" value="founder@startup.com">
+                </div>
+                <div class="input-group mb-6">
+                    <label>Password</label>
+                    <input type="password" placeholder="••••••••" value="password123">
+                </div>
+
+                <button class="btn mb-4" onclick="navigateTo('dashboard')">Continue</button>
+                <button class="btn btn-outline" onclick="navigateTo('dashboard')">
+                    <i class="ph ph-google-logo"></i> Sign in with Google
+                </button>
+            </div>
+
+            <!-- 3. Dashboard -->
+            <div id="screen-dashboard" class="page">
+                <div class="top-bar">
+                    <div class="top-bar-left">
+                        <p>Good morning,</p>
+                        <h2>Acme Corp</h2>
+                    </div>
+                    <div class="top-bar-right">
+                        <i class="ph ph-bell" style="font-size: 24px;"></i>
+                        <div class="avatar" onclick="navigateTo('profile')">F</div>
+                    </div>
+                </div>
+
+                <div class="card ai-insight mb-6">
+                    <i class="ph-fill ph-sparkle"></i>
+                    <div>
+                        <h4 style="font-size: 14px; margin-bottom: 4px;">AI Insight</h4>
+                        <p style="color: #166534; font-size: 13px;">At your current burn rate, you have exactly 14 months of runway remaining.</p>
+                    </div>
+                </div>
+
+                <div class="metric-grid">
+                    <div class="metric-card highlight">
+                        <p>Runway Remaining</p>
+                        <h3 id="dash-runway">14 mo</h3>
+                        <span class="trend up"><i class="ph ph-trend-up"></i> +2 mo</span>
+                    </div>
+                    <div class="metric-card">
+                        <p>Available Cash</p>
+                        <h3>$1.2M</h3>
+                        <span class="trend down"><i class="ph ph-trend-down"></i> -$85k</span>
+                    </div>
+                    <div class="metric-card">
+                        <p>Monthly Burn</p>
+                        <h3>$85,000</h3>
+                        <span class="trend up"><i class="ph ph-trend-up"></i> +5%</span>
+                    </div>
+                    <div class="metric-card">
+                        <p>Total Raised</p>
+                        <h3>$3.5M</h3>
+                        <span class="trend up">Seed Round</span>
+                    </div>
+                </div>
+
+                <div class="card mb-6">
+                    <div class="flex-between mb-4">
+                        <h3>Burn Rate Trend</h3>
+                        <i class="ph ph-dots-three"></i>
+                    </div>
+                    <div class="chart-container">
+                        <canvas id="burnChart"></canvas>
+                    </div>
+                </div>
+            </div>
+
+            <!-- 4. Funding Screen -->
+            <div id="screen-funding" class="page">
+                <h1 class="mb-6">Funding & Cap Table</h1>
+                
+                <div class="metric-grid">
+                    <div class="metric-card">
+                        <p>Total Raised</p>
+                        <h3>$3.5M</h3>
+                    </div>
+                    <div class="metric-card">
+                        <p>Post-Money Val.</p>
+                        <h3>$15.0M</h3>
+                    </div>
+                </div>
+
+                <h3 class="mb-4 mt-6">Investors</h3>
+                
+                <div class="card">
+                    <div class="investor-card">
+                        <div class="investor-logo">S</div>
+                        <div class="investor-info">
+                            <h4>Sequoia Surge</h4>
+                            <p>Seed Round • Jan 2024</p>
+                        </div>
+                        <div class="investor-amount">
+                            <h4>$2.0M</h4>
+                            <p>13.3%</p>
+                        </div>
+                    </div>
+                    <div class="investor-card">
+                        <div class="investor-logo">Y</div>
+                        <div class="investor-info">
+                            <h4>Y Combinator</h4>
+                            <p>Pre-Seed • Jun 2023</p>
+                        </div>
+                        <div class="investor-amount">
+                            <h4>$500k</h4>
+                            <p>7.0%</p>
+                        </div>
+                    </div>
+                    <div class="investor-card" style="margin-bottom:0;">
+                        <div class="investor-logo">A</div>
+                        <div class="investor-info">
+                            <h4>Angel Syndicate</h4>
+                            <p>Pre-Seed • Jun 2023</p>
+                        </div>
+                        <div class="investor-amount">
+                            <h4>$1.0M</h4>
+                            <p>5.0%</p>
+                        </div>
+                    </div>
+                </div>
+                
+                <div class="fab" onclick="alert('Add Investment feature coming soon!')">
+                    <i class="ph ph-plus"></i>
+                </div>
+            </div>
+
+            <!-- 5. Employees -->
+            <div id="screen-employees" class="page">
+                <h1 class="mb-6">Team & Payroll</h1>
+                
+                <div class="metric-grid">
+                    <div class="metric-card highlight" style="grid-column: span 2;">
+                        <p>Monthly Payroll</p>
+                        <h3>$52,000</h3>
+                        <span class="trend up"><i class="ph ph-trend-up"></i> 65% of total burn</span>
+                    </div>
+                    <div class="metric-card">
+                        <p>Headcount</p>
+                        <h3>12</h3>
+                    </div>
+                    <div class="metric-card">
+                        <p>Avg. Salary</p>
+                        <h3>$52k/yr</h3>
+                    </div>
+                </div>
+
+                <h3 class="mb-4 mt-4">Directory</h3>
+                <div class="card">
+                    <div class="list-item">
+                        <img src="https://i.pravatar.cc/100?img=1" style="width: 40px; height: 40px; border-radius: 50%;">
+                        <div style="flex:1">
+                            <h4 style="font-size: 14px;">Sarah Jenkins</h4>
+                            <p style="font-size: 12px;">CTO • Engineering</p>
+                        </div>
+                        <div style="text-align: right;">
+                            <h4 style="font-size: 14px;">$120k</h4>
+                        </div>
+                    </div>
+                    <div class="list-item">
+                        <img src="https://i.pravatar.cc/100?img=33" style="width: 40px; height: 40px; border-radius: 50%;">
+                        <div style="flex:1">
+                            <h4 style="font-size: 14px;">David Chen</h4>
+                            <p style="font-size: 12px;">Sr. Engineer • Engineering</p>
+                        </div>
+                        <div style="text-align: right;">
+                            <h4 style="font-size: 14px;">$95k</h4>
+                        </div>
+                    </div>
+                    <div class="list-item" style="border:none; padding-bottom:0;">
+                        <img src="https://i.pravatar.cc/100?img=5" style="width: 40px; height: 40px; border-radius: 50%;">
+                        <div style="flex:1">
+                            <h4 style="font-size: 14px;">Elena Rodriguez</h4>
+                            <p style="font-size: 12px;">Marketing Lead • Growth</p>
+                        </div>
+                        <div style="text-align: right;">
+                            <h4 style="font-size: 14px;">$85k</h4>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- 6. Expenses -->
+            <div id="screen-expenses" class="page">
+                <h1 class="mb-6">Operational Expenses</h1>
+                
+                <div class="card mb-6">
+                    <div class="chart-container" style="height: 180px;">
+                        <canvas id="expenseChart"></canvas>
+                    </div>
+                </div>
+
+                <h3 class="mb-4">Breakdown (excluding payroll)</h3>
+                <div class="card">
+                    <div class="list-item">
+                        <div class="icon-box" style="color: #3b82f6;"><i class="ph-fill ph-cloud"></i></div>
+                        <div style="flex:1">
+                            <h4 style="font-size: 14px;">Cloud Services</h4>
+                            <p style="font-size: 12px;">AWS, Vercel</p>
+                        </div>
+                        <h4 style="font-size: 14px;">$12,500</h4>
+                    </div>
+                    <div class="list-item">
+                        <div class="icon-box" style="color: #f59e0b;"><i class="ph-fill ph-megaphone"></i></div>
+                        <div style="flex:1">
+                            <h4 style="font-size: 14px;">Marketing</h4>
+                            <p style="font-size: 12px;">Meta Ads, Google</p>
+                        </div>
+                        <h4 style="font-size: 14px;">$8,200</h4>
+                    </div>
+                    <div class="list-item">
+                        <div class="icon-box" style="color: #8b5cf6;"><i class="ph-fill ph-buildings"></i></div>
+                        <div style="flex:1">
+                            <h4 style="font-size: 14px;">Office Rent</h4>
+                            <p style="font-size: 12px;">WeWork</p>
+                        </div>
+                        <h4 style="font-size: 14px;">$5,000</h4>
+                    </div>
+                    <div class="list-item" style="border:none; padding-bottom:0;">
+                        <div class="icon-box" style="color: #10b981;"><i class="ph-fill ph-code"></i></div>
+                        <div style="flex:1">
+                            <h4 style="font-size: 14px;">Software Licenses</h4>
+                            <p style="font-size: 12px;">Github, Linear, Figma</p>
+                        </div>
+                        <h4 style="font-size: 14px;">$1,800</h4>
+                    </div>
+                </div>
+            </div>
+
+            <!-- 7. Treasury Screen -->
+            <div id="screen-treasury" class="page">
+                <h1 class="mb-6">Treasury & Yield</h1>
+                
+                <div class="metric-grid">
+                    <div class="metric-card highlight" style="grid-column: span 2;">
+                        <p>Total Yield YTD</p>
+                        <h3>+$42,500</h3>
+                        <span class="trend up"><i class="ph ph-trend-up"></i> 4.2% APY Average</span>
+                    </div>
+                </div>
+
+                <div class="card mb-6">
+                    <h3 class="mb-4">Portfolio Allocation</h3>
+                    <div style="display: flex; align-items: center; gap: 20px;">
+                        <div class="chart-container" style="width: 120px; height: 120px;">
+                            <canvas id="portfolioChart"></canvas>
+                        </div>
+                        <div style="flex: 1;">
+                            <div class="flex-between mb-2"><span style="font-size:12px;"><span style="color:#22C55E">●</span> Cash (Checking)</span> <span style="font-size:12px; font-weight:600;">20%</span></div>
+                            <div class="flex-between mb-2"><span style="font-size:12px;"><span style="color:#3b82f6">●</span> US Treasuries</span> <span style="font-size:12px; font-weight:600;">50%</span></div>
+                            <div class="flex-between mb-2"><span style="font-size:12px;"><span style="color:#f59e0b">●</span> Fixed Deposits</span> <span style="font-size:12px; font-weight:600;">30%</span></div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- 8. Runway Analysis Screen -->
+            <div id="screen-analysis" class="page">
+                <h1 class="mb-2">Runway Analysis</h1>
+                <p class="mb-6">Simulate scenarios to see impact on survival.</p>
+
+                <div class="circular-progress-container">
+                    <!-- SVG Circular Progress -->
+                    <svg width="200" height="200" viewBox="0 0 200 200">
+                        <circle cx="100" cy="100" r="90" fill="none" stroke="#e5e7eb" stroke-width="12" stroke-linecap="round"/>
+                        <circle cx="100" cy="100" r="90" fill="none" stroke="#22C55E" stroke-width="12" stroke-dasharray="565.48" stroke-dashoffset="170" stroke-linecap="round" transform="rotate(-90 100 100)" style="transition: all 0.5s ease;" id="runway-circle"/>
+                    </svg>
+                    <div class="progress-text">
+                        <h2 id="sim-runway-val">14</h2>
+                        <p>Months</p>
+                    </div>
+                </div>
+
+                <div class="metric-grid">
+                    <div class="metric-card">
+                        <p>Cash Available</p>
+                        <h3>$1.2M</h3>
+                    </div>
+                    <div class="metric-card">
+                        <p>Projected Burn</p>
+                        <h3 id="sim-burn-val">$85k</h3>
+                    </div>
+                </div>
+
+                <h3 class="mb-4 mt-6">Simulations</h3>
+                
+                <div class="card simulation-card" onclick="toggleSim(this, -15000, -2.5)">
+                    <div class="flex-between">
+                        <div>
+                            <h4 style="font-size: 14px;">Hire 2 Senior Engineers</h4>
+                            <p style="font-size: 12px;">+$15,000 / mo burn</p>
+                        </div>
+                        <i class="ph ph-plus-circle" style="font-size: 24px; color: var(--text-muted);"></i>
+                    </div>
+                </div>
+                
+                <div class="card simulation-card" onclick="toggleSim(this, 8000, +1.5)">
+                    <div class="flex-between">
+                        <div>
+                            <h4 style="font-size: 14px;">Cut Marketing Spend</h4>
+                            <p style="font-size: 12px;">-$8,000 / mo burn</p>
+                        </div>
+                        <i class="ph ph-plus-circle" style="font-size: 24px; color: var(--text-muted);"></i>
+                    </div>
+                </div>
+
+                <div class="card simulation-card" onclick="toggleSim(this, 0, +6, true)">
+                    <div class="flex-between">
+                        <div>
+                            <h4 style="font-size: 14px;">Raise $500k Bridge Note</h4>
+                            <p style="font-size: 12px;">+$500k to cash reserve</p>
+                        </div>
+                        <i class="ph ph-plus-circle" style="font-size: 24px; color: var(--text-muted);"></i>
+                    </div>
+                </div>
+            </div>
+
+            <!-- 9. AI Advisor -->
+            <div id="screen-ai" class="page">
+                <div class="flex-between mb-6">
+                    <h1>AI Advisor</h1>
+                    <div class="icon-box" style="border-radius: 50%;"><i class="ph-fill ph-sparkle" style="color: var(--primary);"></i></div>
+                </div>
+
+                <div class="chat-area">
+                    <div class="chat-bubble chat-ai">
+                        Hi founder! I've analyzed your financial data for this month. You're doing well, but I found some optimization opportunities.
+                    </div>
+                    <div class="chat-bubble chat-ai">
+                        <strong>Recommendation:</strong><br><br>
+                        Your AWS bill increased by 22% last month. Implementing reserved instances could save you ~$2,400 monthly.
+                        <br><br>
+                        <button class="btn btn-outline" style="padding: 8px; font-size: 12px; margin-top:12px;">View Cloud Analysis</button>
+                    </div>
+                    <div class="chat-bubble chat-user">
+                        How does this affect my runway?
+                    </div>
+                    <div class="chat-bubble chat-ai">
+                        Saving $2,400/mo extends your runway by approximately <strong>1.5 weeks</strong> at current cash levels, reducing overall burn rate by 2.8%.
+                    </div>
+                </div>
+                
+                <div style="position: absolute; bottom: 100px; left: 20px; right: 20px; display: flex; gap: 8px;">
+                    <input type="text" placeholder="Ask about finances..." style="flex:1; padding: 12px 16px; border: 1px solid var(--border-color); border-radius: 100px; outline:none;">
+                    <button class="btn" style="width: 45px; height: 45px; padding: 0; border-radius: 50%;"><i class="ph ph-paper-plane-right"></i></button>
+                </div>
+            </div>
+
+            <!-- 10. Profile & Settings -->
+            <div id="screen-profile" class="page">
+                <h1 class="mb-6">Settings</h1>
+                
+                <div style="display: flex; flex-direction: column; align-items: center; margin-bottom: 32px;">
+                    <div class="avatar" style="width: 80px; height: 80px; font-size: 32px; margin-bottom: 16px;">F</div>
+                    <h3>Founder Name</h3>
+                    <p>founder@startup.com</p>
+                </div>
+
+                <div class="card mb-4" style="padding: 0;">
+                    <div class="list-item" style="padding: 16px 20px;">
+                        <i class="ph ph-buildings" style="font-size: 20px; color: var(--text-muted);"></i>
+                        <div style="flex:1">Company Profile</div>
+                        <i class="ph ph-caret-right" style="color: var(--text-muted);"></i>
+                    </div>
+                    <div class="list-item" style="padding: 16px 20px;">
+                        <i class="ph ph-currency-dollar" style="font-size: 20px; color: var(--text-muted);"></i>
+                        <div style="flex:1">Currency Preference (USD)</div>
+                        <i class="ph ph-caret-right" style="color: var(--text-muted);"></i>
+                    </div>
+                    <div class="list-item" style="padding: 16px 20px; border: none;">
+                        <i class="ph ph-shield-check" style="font-size: 20px; color: var(--text-muted);"></i>
+                        <div style="flex:1">Security</div>
+                        <i class="ph ph-caret-right" style="color: var(--text-muted);"></i>
+                    </div>
+                </div>
+                
+                <button class="btn btn-outline" style="color: var(--error); border-color: #fee2e2;" onclick="navigateTo('login')">Log Out</button>
+            </div>
+
+            <!-- Bottom Navigation -->
+            <nav class="bottom-nav" id="bottomNav" style="display: none;">
+                <div class="nav-item active" onclick="navigateTo('dashboard', this)">
+                    <i class="ph-fill ph-house"></i>
+                </div>
+                <div class="nav-item" onclick="navigateTo('funding', this)">
+                    <i class="ph-fill ph-money"></i>
+                </div>
+                <div class="nav-item" onclick="navigateTo('analysis', this)">
+                    <i class="ph-fill ph-chart-donut"></i>
+                </div>
+                <div class="nav-item" onclick="navigateTo('expenses', this)">
+                    <i class="ph-fill ph-receipt"></i>
+                </div>
+                <div class="nav-item" onclick="navigateTo('ai', this)">
+                    <i class="ph-fill ph-sparkle"></i>
+                </div>
+            </nav>
+
+        </div>
+    </div>
+
+    <script>
+        // --- Navigation Logic ---
+        function navigateTo(screenId, navElement = null) {
+            // Hide all pages
+            document.querySelectorAll('.page').forEach(page => {
+                page.classList.remove('active');
+            });
+            // Show target page
+            document.getElementById('screen-' + screenId).classList.add('active');
+
+            // Handle bottom nav visibility
+            const nav = document.getElementById('bottomNav');
+            if (screenId === 'splash' || screenId === 'login') {
+                nav.style.display = 'none';
+            } else {
+                nav.style.display = 'flex';
+                
+                // Update active state on nav icons if triggered from nav
+                if (navElement) {
+                    document.querySelectorAll('.nav-item').forEach(item => {
+                        item.classList.remove('active');
+                        // Swap to outline icon
+                        const icon = item.querySelector('i');
+                        icon.className = icon.className.replace('ph-fill', 'ph');
+                    });
+                    navElement.classList.add('active');
+                    // Swap to fill icon
+                    const activeIcon = navElement.querySelector('i');
+                    activeIcon.className = activeIcon.className.replace('ph ', 'ph-fill ');
+                } else if (screenId === 'dashboard') {
+                    // Manual reset to dashboard
+                    const firstNav = document.querySelectorAll('.nav-item')[0];
+                    document.querySelectorAll('.nav-item').forEach(item => {
+                        item.classList.remove('active');
+                        item.querySelector('i').className = item.querySelector('i').className.replace('ph-fill', 'ph');
+                    });
+                    firstNav.classList.add('active');
+                    firstNav.querySelector('i').className = firstNav.querySelector('i').className.replace('ph ', 'ph-fill ');
+                }
+            }
+
+            // Init charts if needed
+            if (screenId === 'dashboard' && !window.dashboardChartInit) {
+                initDashboardCharts();
+                window.dashboardChartInit = true;
+            }
+            if (screenId === 'expenses' && !window.expenseChartInit) {
+                initExpenseChart();
+                window.expenseChartInit = true;
+            }
+            if (screenId === 'treasury' && !window.treasuryChartInit) {
+                initTreasuryChart();
+                window.treasuryChartInit = true;
+            }
+        }
+
+        // --- Splash Screen Auto-Navigate ---
+        setTimeout(() => {
+            if(document.getElementById('screen-splash').classList.contains('active')) {
+                navigateTo('login');
+            }
+        }, 2500);
+
+        // --- Charts Initialization ---
+        Chart.defaults.font.family = 'Inter';
+        Chart.defaults.color = '#6b7280';
+        Chart.defaults.scale.grid.color = '#f3f4f6';
+
+        function initDashboardCharts() {
+            const ctx = document.getElementById('burnChart').getContext('2d');
+            
+            let gradient = ctx.createLinearGradient(0, 0, 0, 200);
+            gradient.addColorStop(0, 'rgba(34, 197, 94, 0.2)');
+            gradient.addColorStop(1, 'rgba(34, 197, 94, 0)');
+
+            new Chart(ctx, {
+                type: 'line',
+                data: {
+                    labels: ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun'],
+                    datasets: [{
+                        label: 'Monthly Burn',
+                        data: [75000, 78000, 76000, 80000, 82000, 85000],
+                        borderColor: '#22C55E',
+                        backgroundColor: gradient,
+                        borderWidth: 3,
+                        pointBackgroundColor: '#fff',
+                        pointBorderColor: '#22C55E',
+                        pointBorderWidth: 2,
+                        pointRadius: 4,
+                        fill: true,
+                        tension: 0.4
+                    }]
+                },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    plugins: { legend: { display: false } },
+                    scales: {
+                        y: { beginAtZero: false, suggestedMin: 60000 },
+                        x: { grid: { display: false } }
+                    }
+                }
+            });
+        }
+
+        function initExpenseChart() {
+            const ctx = document.getElementById('expenseChart').getContext('2d');
+            new Chart(ctx, {
+                type: 'bar',
+                data: {
+                    labels: ['Cloud', 'Mktg', 'Rent', 'SaaS', 'Legal'],
+                    datasets: [{
+                        label: 'Expenses',
+                        data: [12500, 8200, 5000, 1800, 900],
+                        backgroundColor: ['#3b82f6', '#f59e0b', '#8b5cf6', '#10b981', '#64748b'],
+                        borderRadius: 6
+                    }]
+                },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    plugins: { legend: { display: false } },
+                    scales: { x: { grid: { display: false } }, y: { display: false } }
+                }
+            });
+        }
+
+        function initTreasuryChart() {
+            const ctx = document.getElementById('portfolioChart').getContext('2d');
+            new Chart(ctx, {
+                type: 'doughnut',
+                data: {
+                    labels: ['Cash', 'Treasuries', 'Fixed Deposits'],
+                    datasets: [{
+                        data: [20, 50, 30],
+                        backgroundColor: ['#22C55E', '#3b82f6', '#f59e0b'],
+                        borderWidth: 0,
+                        cutout: '75%'
+                    }]
+                },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    plugins: { legend: { display: false } }
+                }
+            });
+        }
+
+        // --- Simulation Logic ---
+        let baseRunway = 14;
+        let baseBurn = 85000;
+        let activeSims = { burnDiff: 0, runwayDiff: 0 };
+
+        function toggleSim(element, burnChange, runwayChange, isRaise = false) {
+            const isActive = element.classList.contains('active');
+            const icon = element.querySelector('i');
+            
+            if (isActive) {
+                element.classList.remove('active');
+                icon.className = 'ph ph-plus-circle';
+                icon.style.color = 'var(--text-muted)';
+                activeSims.burnDiff -= burnChange;
+                activeSims.runwayDiff -= runwayChange;
+            } else {
+                element.classList.add('active');
+                icon.className = 'ph-fill ph-check-circle';
+                icon.style.color = 'var(--primary)';
+                activeSims.burnDiff += burnChange;
+                activeSims.runwayDiff += runwayChange;
+            }
+
+            updateSimUI();
+        }
+
+        function updateSimUI() {
+            const newRunway = Math.max(0, baseRunway + activeSims.runwayDiff);
+            const newBurn = baseBurn + activeSims.burnDiff;
+
+            // Animate Numbers
+            document.getElementById('sim-runway-val').innerText = newRunway.toFixed(1);
+            document.getElementById('sim-burn-val').innerText = '$' + (newBurn/1000).toFixed(1) + 'k';
+            
+            // Sync to dashboard
+            document.getElementById('dash-runway').innerText = newRunway.toFixed(1) + ' mo';
+
+            // Animate SVG Circle
+            // Math for dashoffset: Circumference is ~565. 
+            // 0 offset = 100%. 565 offset = 0%. Let's say 24 months is 100%.
+            const percentage = Math.min(100, (newRunway / 24) * 100);
+            const offset = 565.48 - (percentage / 100) * 565.48;
+            document.getElementById('runway-circle').style.strokeDashoffset = offset;
+            
+            // Change color if dangerous
+            if (newRunway < 6) {
+                document.getElementById('runway-circle').style.stroke = 'var(--error)';
+                document.getElementById('sim-runway-val').style.color = 'var(--error)';
+            } else {
+                document.getElementById('runway-circle').style.stroke = 'var(--primary)';
+                document.getElementById('sim-runway-val').style.color = 'var(--primary)';
+            }
+        }
+    </script>
+</body>
+</html>

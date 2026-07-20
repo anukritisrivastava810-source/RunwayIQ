@@ -1,0 +1,350 @@
+// This is the RunwayIQ Prisma Schema
+// Prisma 6+ compatible | PostgreSQL | UUID Primary Keys
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+// ─────────────────────────────────────────────
+// ENUMS
+// ─────────────────────────────────────────────
+
+enum UserRole {
+  FOUNDER
+  FINANCE_MANAGER
+  HR
+  INVESTOR
+}
+
+enum StartupStage {
+  IDEA
+  PRE_SEED
+  SEED
+  SERIES_A
+  SERIES_B
+  SERIES_C
+  GROWTH
+  IPO
+}
+
+enum EmploymentStatus {
+  ACTIVE
+  INACTIVE
+  NOTICE
+  RESIGNED
+}
+
+enum ExpenseCategory {
+  PAYROLL
+  CLOUD
+  MARKETING
+  OFFICE_RENT
+  UTILITIES
+  LEGAL
+  SOFTWARE
+  TRAVEL
+  HARDWARE
+  OTHER
+}
+
+enum ExpenseRecurrence {
+  ONE_TIME
+  WEEKLY
+  MONTHLY
+  QUARTERLY
+  YEARLY
+}
+
+enum FundingRoundType {
+  PRE_SEED
+  SEED
+  SERIES_A
+  SERIES_B
+  SERIES_C
+  BRIDGE
+  DEBT
+  GRANT
+  IPO
+}
+
+enum AssetType {
+  STOCK
+  ETF
+  MUTUAL_FUND
+  BOND
+  CRYPTO
+  CASH
+  FIXED_DEPOSIT
+}
+
+enum Currency {
+  USD
+  INR
+  EUR
+  GBP
+  SGD
+  AED
+}
+
+// ─────────────────────────────────────────────
+// MODEL: Company
+// ─────────────────────────────────────────────
+
+model Company {
+  id               String    @id @default(uuid())
+  name             String
+  legalName        String?
+  industry         String?
+  website          String?
+  logoUrl          String?
+  country          String?
+  currency         Currency  @default(USD)
+  stage            StartupStage @default(PRE_SEED)
+  foundedAt        DateTime?
+  createdAt        DateTime  @default(now())
+  updatedAt        DateTime  @updatedAt
+
+  // Relations
+  users               User[]
+  departments         Department[]
+  employees           Employee[]
+  investors           Investor[]
+  fundingRounds       FundingRound[]
+  expenses            Expense[]
+  treasuryInvestments TreasuryInvestment[]
+  scenarios           Scenario[]
+
+  @@index([name])
+  @@map("companies")
+}
+
+// ─────────────────────────────────────────────
+// MODEL: User
+// ─────────────────────────────────────────────
+
+model User {
+  id             String    @id @default(uuid())
+  companyId      String
+  email          String    @unique
+  passwordHash   String
+  firstName      String
+  lastName       String
+  role           UserRole  @default(FOUNDER)
+  avatarUrl      String?
+  isActive       Boolean   @default(true)
+  lastLoginAt    DateTime?
+  createdAt      DateTime  @default(now())
+  updatedAt      DateTime  @updatedAt
+
+  // Relations
+  company  Company @relation(fields: [companyId], references: [id], onDelete: Cascade)
+
+  @@index([companyId])
+  @@index([email])
+  @@map("users")
+}
+
+// ─────────────────────────────────────────────
+// MODEL: Department
+// ─────────────────────────────────────────────
+
+model Department {
+  id          String   @id @default(uuid())
+  companyId   String
+  name        String
+  headCount   Int      @default(0)
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  // Relations
+  company   Company    @relation(fields: [companyId], references: [id], onDelete: Cascade)
+  employees Employee[]
+  expenses  Expense[]
+
+  @@unique([companyId, name])
+  @@index([companyId])
+  @@map("departments")
+}
+
+// ─────────────────────────────────────────────
+// MODEL: Employee
+// ─────────────────────────────────────────────
+
+model Employee {
+  id             String           @id @default(uuid())
+  companyId      String
+  departmentId   String
+  firstName      String
+  lastName       String
+  email          String           @unique
+  role           String
+  annualSalary   Decimal          @db.Decimal(15, 2)
+  currency       Currency         @default(USD)
+  status         EmploymentStatus @default(ACTIVE)
+  joinedAt       DateTime
+  exitedAt       DateTime?
+  avatarUrl      String?
+  createdAt      DateTime         @default(now())
+  updatedAt      DateTime         @updatedAt
+
+  // Relations
+  company    Company    @relation(fields: [companyId], references: [id], onDelete: Cascade)
+  department Department @relation(fields: [departmentId], references: [id])
+
+  @@index([companyId])
+  @@index([email])
+  @@map("employees")
+}
+
+// ─────────────────────────────────────────────
+// MODEL: Investor
+// ─────────────────────────────────────────────
+
+model Investor {
+  id          String   @id @default(uuid())
+  companyId   String
+  name        String
+  firmName    String?
+  email       String?
+  logoUrl     String?
+  linkedinUrl String?
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  // Relations
+  company       Company        @relation(fields: [companyId], references: [id], onDelete: Cascade)
+  fundingRounds FundingRound[]
+
+  @@index([companyId])
+  @@map("investors")
+}
+
+// ─────────────────────────────────────────────
+// MODEL: FundingRound
+// ─────────────────────────────────────────────
+
+model FundingRound {
+  id              String           @id @default(uuid())
+  companyId       String
+  investorId      String
+  roundType       FundingRoundType
+  amountRaised    Decimal          @db.Decimal(18, 2)
+  currency        Currency         @default(USD)
+  equityPercent   Decimal?         @db.Decimal(5, 4)  // e.g., 0.1333 = 13.33%
+  preMoneyVal     Decimal?         @db.Decimal(18, 2)
+  postMoneyVal    Decimal?         @db.Decimal(18, 2)
+  closedAt        DateTime
+  notes           String?
+  createdAt       DateTime         @default(now())
+  updatedAt       DateTime         @updatedAt
+
+  // Relations
+  company  Company  @relation(fields: [companyId], references: [id], onDelete: Cascade)
+  investor Investor @relation(fields: [investorId], references: [id])
+
+  @@index([companyId])
+  @@index([closedAt])
+  @@map("funding_rounds")
+}
+
+// ─────────────────────────────────────────────
+// MODEL: Expense
+// ─────────────────────────────────────────────
+
+model Expense {
+  id            String            @id @default(uuid())
+  companyId     String
+  departmentId  String?
+  title         String
+  description   String?
+  category      ExpenseCategory   @default(OTHER)
+  amount        Decimal           @db.Decimal(15, 2)
+  currency      Currency          @default(USD)
+  recurrence    ExpenseRecurrence @default(ONE_TIME)
+  expenseDate   DateTime
+  receiptUrl    String?
+  vendor        String?
+  isPaid        Boolean           @default(false)
+  createdAt     DateTime          @default(now())
+  updatedAt     DateTime          @updatedAt
+
+  // Relations
+  company    Company     @relation(fields: [companyId], references: [id], onDelete: Cascade)
+  department Department? @relation(fields: [departmentId], references: [id], onDelete: SetNull)
+
+  @@index([companyId])
+  @@index([expenseDate])
+  @@map("expenses")
+}
+
+// ─────────────────────────────────────────────
+// MODEL: TreasuryInvestment
+// ─────────────────────────────────────────────
+
+model TreasuryInvestment {
+  id               String    @id @default(uuid())
+  companyId        String
+  assetType        AssetType
+  name             String
+  ticker           String?
+  units            Decimal?  @db.Decimal(18, 8)
+  purchasePrice    Decimal   @db.Decimal(15, 2)
+  currentPrice     Decimal?  @db.Decimal(15, 2)
+  totalInvested    Decimal   @db.Decimal(15, 2)
+  currentValue     Decimal?  @db.Decimal(15, 2)
+  currency         Currency  @default(USD)
+  investmentDate   DateTime
+  maturityDate     DateTime?
+  interestRate     Decimal?  @db.Decimal(5, 4)  // e.g., 0.0575 = 5.75%
+  notes            String?
+  createdAt        DateTime  @default(now())
+  updatedAt        DateTime  @updatedAt
+
+  // Relations
+  company Company @relation(fields: [companyId], references: [id], onDelete: Cascade)
+
+  @@index([companyId])
+  @@index([investmentDate])
+  @@map("treasury_investments")
+}
+
+// ─────────────────────────────────────────────
+// MODEL: Scenario
+// ─────────────────────────────────────────────
+
+model Scenario {
+  id                  String   @id @default(uuid())
+  companyId           String
+  name                String
+  description         String?
+
+  // Baseline Snapshot
+  baseCash            Decimal  @db.Decimal(15, 2)
+  baseMonthlyBurn     Decimal  @db.Decimal(15, 2)
+  baseMonthlyRevenue  Decimal  @db.Decimal(15, 2)
+  baseRunwayMonths    Decimal  @db.Decimal(5, 2)
+
+  // Scenario Adjustments
+  additionalBurn      Decimal  @default(0) @db.Decimal(15, 2)
+  additionalRevenue   Decimal  @default(0) @db.Decimal(15, 2)
+  additionalCash      Decimal  @default(0) @db.Decimal(15, 2)
+
+  // Computed Result (stored for dashboard speed)
+  simulatedRunway     Decimal? @db.Decimal(5, 2)
+
+  currency            Currency @default(USD)
+  isActive            Boolean  @default(true)
+  createdAt           DateTime @default(now())
+  updatedAt           DateTime @updatedAt
+
+  // Relations
+  company Company @relation(fields: [companyId], references: [id], onDelete: Cascade)
+
+  @@index([companyId])
+  @@map("scenarios")
+}
