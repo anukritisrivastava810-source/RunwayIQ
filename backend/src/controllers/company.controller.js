@@ -1,31 +1,121 @@
-import { CompanyService } from '../services/company.service.js';
-import { ApiResponse } from '../utils/ApiResponse.js';
-import { asyncHandler } from '../middleware/asyncHandler.js';
+import companyService from '../services/company.service.js';
 
-const companyService = new CompanyService();
+/**
+ * CompanyController
+ * 
+ * Handles incoming HTTP requests for Company operations,
+ * routes them to the CompanyService, and formats the HTTP responses.
+ */
+class CompanyController {
+  
+  /**
+   * Helper method to handle errors and send appropriate HTTP responses
+   * @private
+   */
+  _handleError(res, error) {
+    const message = error.message || 'Internal Server Error';
+    let statusCode = 500;
+    
+    if (message.includes('required') || message.includes('already exists')) {
+      statusCode = 400;
+    } else if (message.includes('not found')) {
+      statusCode = 404;
+    }
 
-export const getCompanys = asyncHandler(async (req, res) => {
-  const { skip = 0, take = 10 } = req.query;
-  const data = await companyService.getAllCompanys(Number(skip), Number(take));
-  res.status(200).json(new ApiResponse(200, data, 'Companys retrieved successfully'));
-});
+    return res.status(statusCode).json({
+      success: false,
+      message
+    });
+  }
 
-export const getCompanyById = asyncHandler(async (req, res) => {
-  const data = await companyService.getCompanyById(req.params.id);
-  res.status(200).json(new ApiResponse(200, data, 'Company retrieved successfully'));
-});
+  /**
+   * Create a new company
+   * @param {Object} req - Express request object
+   * @param {Object} res - Express response object
+   */
+  createCompany = async (req, res) => {
+    try {
+      const company = await companyService.createCompany(req.body);
+      return res.status(201).json(company);
+    } catch (error) {
+      return this._handleError(res, error);
+    }
+  }
 
-export const createCompany = asyncHandler(async (req, res) => {
-  const data = await companyService.createCompany(req.body);
-  res.status(201).json(new ApiResponse(201, data, 'Company created successfully'));
-});
+  /**
+   * Get a company by ID
+   * @param {Object} req - Express request object
+   * @param {Object} res - Express response object
+   */
+  getCompanyById = async (req, res) => {
+    try {
+      const { id } = req.params;
+      const company = await companyService.getCompanyById(id);
+      return res.status(200).json(company);
+    } catch (error) {
+      return this._handleError(res, error);
+    }
+  }
 
-export const updateCompany = asyncHandler(async (req, res) => {
-  const data = await companyService.updateCompany(req.params.id, req.body);
-  res.status(200).json(new ApiResponse(200, data, 'Company updated successfully'));
-});
+  /**
+   * Get a company by name
+   * @param {Object} req - Express request object
+   * @param {Object} res - Express response object
+   */
+  getCompanyByName = async (req, res) => {
+    try {
+      const { name } = req.params;
+      const company = await companyService.getCompanyByName(name);
+      return res.status(200).json(company);
+    } catch (error) {
+      return this._handleError(res, error);
+    }
+  }
 
-export const deleteCompany = asyncHandler(async (req, res) => {
-  await companyService.deleteCompany(req.params.id);
-  res.status(200).json(new ApiResponse(200, null, 'Company deleted successfully'));
-});
+  /**
+   * Get all companies
+   * @param {Object} req - Express request object
+   * @param {Object} res - Express response object
+   */
+  getAllCompanies = async (req, res) => {
+    try {
+      const companies = await companyService.getAllCompanies();
+      return res.status(200).json(companies);
+    } catch (error) {
+      return this._handleError(res, error);
+    }
+  }
+
+  /**
+   * Update a company
+   * @param {Object} req - Express request object
+   * @param {Object} res - Express response object
+   */
+  updateCompany = async (req, res) => {
+    try {
+      const { id } = req.params;
+      const updatedCompany = await companyService.updateCompany(id, req.body);
+      return res.status(200).json(updatedCompany);
+    } catch (error) {
+      return this._handleError(res, error);
+    }
+  }
+
+  /**
+   * Delete a company
+   * @param {Object} req - Express request object
+   * @param {Object} res - Express response object
+   */
+  deleteCompany = async (req, res) => {
+    try {
+      const { id } = req.params;
+      const result = await companyService.deleteCompany(id);
+      return res.status(200).json(result);
+    } catch (error) {
+      return this._handleError(res, error);
+    }
+  }
+}
+
+// Export a singleton instance
+export default new CompanyController();

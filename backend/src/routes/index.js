@@ -13,7 +13,7 @@ import scenarioRoutes from './scenario.routes.js';
 const router = Router();
 
 router.use('/auth', authRoutes);
-router.use('/companies', companyRoutes);
+router.use('/company', companyRoutes);
 router.use('/dashboard', dashboardRoutes);
 router.use('/employees', employeeRoutes);
 router.use('/departments', departmentRoutes);
