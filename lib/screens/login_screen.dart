@@ -1,7 +1,8 @@
 import 'package:flutter/material.dart';
 import '../widgets/custom_button.dart';
 import 'main_layout.dart';
-
+import '../features/onboarding/data/repositories/onboarding_repository.dart';
+import '../features/onboarding/presentation/onboarding_wrapper.dart';
 class LoginScreen extends StatelessWidget {
   const LoginScreen({super.key});
 
@@ -62,26 +63,48 @@ class LoginScreen extends StatelessWidget {
               
               CustomButton(
                 text: 'Continue',
-                onPressed: () {
-                  Navigator.of(context).pushReplacement(
-                    MaterialPageRoute(builder: (_) => const MainLayout()),
-                  );
-                },
+                onPressed: () => _handleLogin(context),
               ),
               const SizedBox(height: 16),
               CustomButton(
                 text: 'Sign in with Google',
                 isOutlined: true,
-                onPressed: () {
-                  Navigator.of(context).pushReplacement(
-                    MaterialPageRoute(builder: (_) => const MainLayout()),
-                  );
-                },
+                onPressed: () => _handleLogin(context),
               ),
             ],
           ),
         ),
       ),
     );
+  }
+
+  Future<void> _handleLogin(BuildContext context) async {
+    // Show loading
+    showDialog(
+      context: context,
+      barrierDismissible: false,
+      builder: (_) => const Center(child: CircularProgressIndicator()),
+    );
+
+    // Simulate authentication
+    await Future.delayed(const Duration(seconds: 1));
+
+    if (context.mounted) {
+      Navigator.of(context).pop(); // Dismiss loading
+
+      final isCompleted = await OnboardingRepository().isOnboardingCompleted();
+      
+      if (context.mounted) {
+        if (isCompleted) {
+          Navigator.of(context).pushReplacement(
+            MaterialPageRoute(builder: (_) => const MainLayout()),
+          );
+        } else {
+          Navigator.of(context).pushReplacement(
+            MaterialPageRoute(builder: (_) => const OnboardingWrapper()),
+          );
+        }
+      }
+    }
   }
 }

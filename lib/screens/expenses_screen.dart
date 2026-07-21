@@ -1,11 +1,19 @@
 import 'package:flutter/material.dart';
 
+import '../features/onboarding/data/repositories/onboarding_repository.dart';
+
 class ExpensesScreen extends StatelessWidget {
   const ExpensesScreen({super.key});
 
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
+    final repo = OnboardingRepository();
+    final hasExpenses = repo.hasExpenses;
+    
+    if (!hasExpenses) {
+      return _buildEmptyState(context);
+    }
     
     return SingleChildScrollView(
       padding: const EdgeInsets.all(16.0),
@@ -34,6 +42,8 @@ class ExpensesScreen extends StatelessWidget {
             clipBehavior: Clip.antiAlias,
             child: Column(
               children: [
+                _buildExpenseTile(context, 'Total Monthly Expenses', 'Calculated from Onboarding', '\$${repo.currentData?.financials?.monthlyExpenses ?? 0}', Icons.account_balance, Colors.blue),
+                const Divider(height: 1),
                 _buildExpenseTile(context, 'Cloud Services', 'AWS, Vercel', '\$12,500', Icons.cloud, Colors.blue),
                 const Divider(height: 1),
                 _buildExpenseTile(context, 'Marketing', 'Meta Ads, Google', '\$8,200', Icons.campaign, Colors.orange),
@@ -45,6 +55,38 @@ class ExpensesScreen extends StatelessWidget {
             ),
           ),
         ],
+      ),
+    );
+  }
+
+  Widget _buildEmptyState(BuildContext context) {
+    final theme = Theme.of(context);
+    return Center(
+      child: Padding(
+        padding: const EdgeInsets.all(32.0),
+        child: Column(
+          mainAxisAlignment: MainAxisAlignment.center,
+          children: [
+            Icon(Icons.receipt_long_outlined, size: 80, color: theme.colorScheme.primary.withValues(alpha: 0.5)),
+            const SizedBox(height: 24),
+            Text('No Expenses Yet', style: theme.textTheme.headlineSmall),
+            const SizedBox(height: 16),
+            Text(
+              'Track your recurring software, rent, and operational expenses.',
+              textAlign: TextAlign.center,
+              style: theme.textTheme.bodyMedium?.copyWith(color: theme.colorScheme.onSurface.withValues(alpha: 0.6)),
+            ),
+            const SizedBox(height: 32),
+            ElevatedButton.icon(
+              onPressed: () {},
+              icon: const Icon(Icons.add),
+              label: const Text('Add Expense'),
+              style: ElevatedButton.styleFrom(
+                padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 12),
+              ),
+            ),
+          ],
+        ),
       ),
     );
   }

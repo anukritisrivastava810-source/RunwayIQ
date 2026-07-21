@@ -4,12 +4,24 @@ import '../widgets/dashboard_card.dart';
 import 'ai_advisor_screen.dart';
 import 'runway_screen.dart';
 
+import '../features/onboarding/data/repositories/onboarding_repository.dart';
+
 class DashboardScreen extends StatelessWidget {
   const DashboardScreen({super.key});
 
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
+    final repo = OnboardingRepository();
+    
+    final cash = repo.currentData?.financials?.currentCash ?? 0.0;
+    final burn = repo.currentData?.financials?.monthlyExpenses ?? 0.0;
+    final raised = repo.currentData?.funding?.amount ?? 0.0;
+    
+    int runwayMonths = 0;
+    if (burn > 0) {
+      runwayMonths = (cash / burn).round();
+    }
     
     return SingleChildScrollView(
       padding: const EdgeInsets.all(16.0),
@@ -37,7 +49,7 @@ class DashboardScreen extends StatelessWidget {
                       ),
                       const SizedBox(height: 4),
                       Text(
-                        'At your current burn rate, you have 14 months of runway remaining.',
+                        'At your current burn rate, you have $runwayMonths months of runway remaining.',
                         style: theme.textTheme.bodyMedium,
                       ),
                     ],
@@ -59,11 +71,11 @@ class DashboardScreen extends StatelessWidget {
             mainAxisSpacing: 12,
             childAspectRatio: 1.5,
             children: [
-              const StatsCard(
+              StatsCard(
                 title: 'Available Cash',
-                value: '\$1.2M',
-                trend: '-\$85k',
-                isPositive: false,
+                value: '\$${(cash / 1000).toStringAsFixed(1)}k',
+                trend: 'Current',
+                isPositive: true,
               ),
               GestureDetector(
                 onTap: () {
@@ -71,24 +83,24 @@ class DashboardScreen extends StatelessWidget {
                     MaterialPageRoute(builder: (_) => const RunwayScreen()),
                   );
                 },
-                child: const StatsCard(
+                child: StatsCard(
                   title: 'Runway',
-                  value: '14 mo',
-                  trend: '+2 mo',
-                  isPositive: true,
+                  value: '$runwayMonths mo',
+                  trend: 'Based on burn',
+                  isPositive: runwayMonths > 6,
                   isHighlighted: true, 
                 ),
               ),
-              const StatsCard(
+              StatsCard(
                 title: 'Monthly Burn',
-                value: '\$85k',
-                trend: '+5%',
+                value: '\$${(burn / 1000).toStringAsFixed(1)}k',
+                trend: 'Current',
                 isPositive: false,
               ),
-              const StatsCard(
+              StatsCard(
                 title: 'Total Raised',
-                value: '\$3.5M',
-                trend: 'Seed Round',
+                value: '\$${(raised / 1000000).toStringAsFixed(1)}M',
+                trend: repo.currentData?.funding?.round ?? 'N/A',
                 isPositive: true,
               ),
             ],
