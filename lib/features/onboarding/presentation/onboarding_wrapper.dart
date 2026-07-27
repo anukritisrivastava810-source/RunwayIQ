@@ -1,6 +1,9 @@
 import 'package:flutter/material.dart';
 import '../domain/models/onboarding_models.dart';
 import '../data/repositories/onboarding_repository.dart';
+import '../../company/data/repositories/company_repository.dart';
+import '../../company/domain/models/company.dart';
+import '../../../core/network/api_exceptions.dart';
 import 'steps/welcome_step.dart';
 import 'steps/company_info_step.dart';
 import 'steps/financial_setup_step.dart';
@@ -45,17 +48,55 @@ class _OnboardingWrapperState extends State<OnboardingWrapper> {
   }
 
   Future<void> _finishOnboarding() async {
+    if (_onboardingData.company == null) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('Company details are required.')),
+      );
+      return;
+    }
+
     setState(() {
       _isSubmitting = true;
     });
     
-    await OnboardingRepository().completeOnboarding(_onboardingData);
-    
-    if (mounted) {
-      Navigator.of(context).pushAndRemoveUntil(
-        MaterialPageRoute(builder: (_) => const MainLayout()),
-        (route) => false,
-      );
+    try {
+      final company = Company.fromCompanyDetails(_onboardingData.company!);
+      await CompanyRepository().createCompany(company);
+      await OnboardingRepository().completeOnboarding(_onboardingData);
+      
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(content: Text('Company created successfully!')),
+        );
+        Navigator.of(context).pushAndRemoveUntil(
+          MaterialPageRoute(builder: (_) => const MainLayout()),
+          (route) => false,
+        );
+      }
+    } on ApiException catch (e) {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text(e.message),
+            backgroundColor: Theme.of(context).colorScheme.error,
+          ),
+        );
+      }
+    } catch (e) {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: const Text('An unexpected error occurred. Please try again.'),
+            backgroundColor: Theme.of(context).colorScheme.error,
+          ),
+        );
+      }
+    } finally {
+      if (mounted) {
+        setState(() {
+          _isSubmitting = false;
+        });
+      }
     }
   }
 

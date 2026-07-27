@@ -5,13 +5,104 @@ import 'ai_advisor_screen.dart';
 import 'runway_screen.dart';
 
 import '../features/onboarding/data/repositories/onboarding_repository.dart';
+import '../features/company/data/repositories/company_repository.dart';
+import '../features/company/domain/models/company.dart';
+import '../core/network/api_exceptions.dart';
 
-class DashboardScreen extends StatelessWidget {
+class DashboardScreen extends StatefulWidget {
   const DashboardScreen({super.key});
+
+  @override
+  State<DashboardScreen> createState() => _DashboardScreenState();
+}
+
+class _DashboardScreenState extends State<DashboardScreen> {
+  bool _isLoading = true;
+  bool _hasError = false;
+  String _errorMessage = '';
+  Company? _company;
+
+  @override
+  void initState() {
+    super.initState();
+    _loadCompanyData();
+  }
+
+  Future<void> _loadCompanyData() async {
+    setState(() {
+      _isLoading = true;
+      _hasError = false;
+      _errorMessage = '';
+    });
+
+    try {
+      final companies = await CompanyRepository().getCompanies();
+      if (companies.isNotEmpty) {
+        _company = companies.first;
+      } else {
+        _company = null;
+      }
+    } on ApiException catch (e) {
+      _hasError = true;
+      _errorMessage = e.message;
+    } catch (e) {
+      _hasError = true;
+      _errorMessage = 'An unexpected error occurred';
+    } finally {
+      if (mounted) {
+        setState(() {
+          _isLoading = false;
+        });
+      }
+    }
+  }
 
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
+    
+    if (_isLoading) {
+      return const Center(child: CircularProgressIndicator());
+    }
+
+    if (_hasError) {
+      return Center(
+        child: Column(
+          mainAxisAlignment: MainAxisAlignment.center,
+          children: [
+            Icon(Icons.error_outline, color: theme.colorScheme.error, size: 48),
+            const SizedBox(height: 16),
+            Text(_errorMessage, style: theme.textTheme.titleMedium),
+            const SizedBox(height: 16),
+            ElevatedButton(
+              onPressed: _loadCompanyData,
+              child: const Text('Retry'),
+            ),
+          ],
+        ),
+      );
+    }
+
+    if (_company == null) {
+      return Center(
+        child: Column(
+          mainAxisAlignment: MainAxisAlignment.center,
+          children: [
+            Icon(Icons.business_outlined, color: theme.colorScheme.primary, size: 48),
+            const SizedBox(height: 16),
+            Text('No company data found', style: theme.textTheme.titleMedium),
+            const SizedBox(height: 8),
+            Text('Please complete onboarding to view your dashboard.', 
+              style: theme.textTheme.bodyMedium?.copyWith(
+                color: theme.colorScheme.onSurface.withValues(alpha: 0.6),
+              ),
+              textAlign: TextAlign.center,
+            ),
+          ],
+        ),
+      );
+    }
+
     final repo = OnboardingRepository();
     
     final cash = repo.currentData?.financials?.currentCash ?? 0.0;
@@ -44,12 +135,12 @@ class DashboardScreen extends StatelessWidget {
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
                       Text(
-                        'AI Insight',
+                        '${_company!.name} Insight',
                         style: theme.textTheme.titleSmall?.copyWith(color: theme.colorScheme.primary),
                       ),
                       const SizedBox(height: 4),
                       Text(
-                        'At your current burn rate, you have $runwayMonths months of runway remaining.',
+                        'At your current burn rate, ${_company!.name} has $runwayMonths months of runway remaining.',
                         style: theme.textTheme.bodyMedium,
                       ),
                     ],
@@ -100,7 +191,7 @@ class DashboardScreen extends StatelessWidget {
               StatsCard(
                 title: 'Total Raised',
                 value: '\$${(raised / 1000000).toStringAsFixed(1)}M',
-                trend: repo.currentData?.funding?.round ?? 'N/A',
+                trend: _company!.stage.replaceAll('_', ' '),
                 isPositive: true,
               ),
             ],
