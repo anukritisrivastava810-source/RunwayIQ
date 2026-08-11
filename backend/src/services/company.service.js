@@ -22,6 +22,10 @@ class CompanyService {
       throw new Error('Company with this name already exists');
     }
 
+    if (companyData.foundedAt) {
+      companyData.foundedAt = new Date(companyData.foundedAt);
+    }
+
     return await companyRepository.create(companyData);
   }
 

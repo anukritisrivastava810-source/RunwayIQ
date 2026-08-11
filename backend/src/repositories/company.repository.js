@@ -13,6 +13,14 @@ class CompanyRepository {
    * @returns {Promise<Object>} The created company object
    */
   async create(companyData) {
+    console.log(companyData);
+    console.log(companyData.foundedAt);
+    console.log(companyData.foundedAt instanceof Date);
+
+    if (companyData.foundedAt instanceof Date) {
+        console.log(companyData.foundedAt.toISOString());
+    }
+
     return await prisma.company.create({
       data: companyData,
     });
@@ -55,9 +63,21 @@ class CompanyRepository {
    * @returns {Promise<Object>} The updated company object
    */
   async update(id, updateData) {
+    const data = { ...updateData };
+
+    if (data.foundedAt !== undefined && data.foundedAt !== null) {
+      const parsedDate = new Date(data.foundedAt);
+      if (isNaN(parsedDate.getTime())) {
+        throw new Error('Invalid value for foundedAt');
+      }
+    }
+
     return await prisma.company.update({
       where: { id },
-      data: updateData,
+      data: {
+        ...data,
+        ...(data.foundedAt !== undefined && { foundedAt: data.foundedAt ? new Date(data.foundedAt) : null })
+      }
     });
   }
 
