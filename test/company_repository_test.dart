@@ -81,7 +81,7 @@ void main() {
       expect(company.logoUrl, 'https://techcorp.io/logo.png');
       expect(company.country, 'USA');
       expect(company.currency, 'USD');
-      expect(company.stage, 'SERIES_A');
+      expect(company.stage, 'Series A');
       expect(company.foundedAt, DateTime.parse('2024-01-15T00:00:00.000Z'));
 
       final outputJson = company.toJson();

@@ -5,9 +5,17 @@ import { asyncHandler } from '../middleware/asyncHandler.js';
 const departmentService = new DepartmentService();
 
 export const getDepartments = asyncHandler(async (req, res) => {
-  const { skip = 0, take = 10 } = req.query;
-  const data = await departmentService.getAllDepartments(Number(skip), Number(take));
+  const { skip = 0, take = 50, companyId } = req.query;
+  const data = companyId
+    ? await departmentService.getByCompany(companyId)
+    : await departmentService.getAllDepartments(Number(skip), Number(take));
   res.status(200).json(new ApiResponse(200, data, 'Departments retrieved successfully'));
+});
+
+export const getDepartmentsByCompanyId = asyncHandler(async (req, res) => {
+  const { companyId } = req.params;
+  const data = await departmentService.getByCompany(companyId);
+  res.status(200).json(new ApiResponse(200, data, 'Company departments retrieved successfully'));
 });
 
 export const getDepartmentById = asyncHandler(async (req, res) => {

@@ -1,60 +1,282 @@
 import 'package:flutter/material.dart';
+import '../features/company/data/repositories/company_repository.dart';
+import '../features/company/domain/models/company.dart';
+import '../features/expense/data/repositories/expense_repository.dart';
+import '../features/expense/domain/models/expense.dart';
+import '../features/onboarding/presentation/steps/financial_setup_step.dart';
+import '../widgets/stats_card.dart';
+import '../core/network/api_exceptions.dart';
 
-import '../features/onboarding/data/repositories/onboarding_repository.dart';
-
-class ExpensesScreen extends StatelessWidget {
+class ExpensesScreen extends StatefulWidget {
   const ExpensesScreen({super.key});
+
+  @override
+  State<ExpensesScreen> createState() => _ExpensesScreenState();
+}
+
+class _ExpensesScreenState extends State<ExpensesScreen> {
+  bool _isLoading = true;
+  bool _hasError = false;
+  String _errorMessage = '';
+  Company? _activeCompany;
+  List<Expense> _expenses = [];
+
+  @override
+  void initState() {
+    super.initState();
+    _loadExpenseData();
+  }
+
+  Future<void> _loadExpenseData() async {
+    setState(() {
+      _isLoading = true;
+      _hasError = false;
+      _errorMessage = '';
+    });
+
+    try {
+      final companies = await CompanyRepository().getCompanies();
+      if (companies.isEmpty) {
+        _activeCompany = null;
+        _expenses = [];
+      } else {
+        _activeCompany = companies.first;
+        final companyId = _activeCompany!.id;
+        if (companyId != null && companyId.isNotEmpty) {
+          _expenses = await ExpenseRepository().getExpensesByCompany(companyId);
+        } else {
+          _expenses = [];
+        }
+      }
+    } on ApiException catch (e) {
+      _hasError = true;
+      _errorMessage = e.message;
+    } catch (e) {
+      _hasError = true;
+      _errorMessage = 'An unexpected error occurred: $e';
+    } finally {
+      if (mounted) {
+        setState(() {
+          _isLoading = false;
+        });
+      }
+    }
+  }
+
+  Future<void> _openAddExpense() async {
+    if (_activeCompany == null) {
+      final companies = await CompanyRepository().getCompanies();
+      if (companies.isNotEmpty) {
+        _activeCompany = companies.first;
+      }
+    }
+
+    if (_activeCompany == null || _activeCompany!.id == null || _activeCompany!.id!.isEmpty) {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(content: Text('No active company found. Please complete onboarding first.')),
+        );
+      }
+      return;
+    }
+
+    if (!mounted) return;
+
+    final result = await Navigator.of(context).push<bool>(
+      MaterialPageRoute(
+        builder: (_) => FinancialSetupStep(
+          companyId: _activeCompany!.id,
+          companyCurrency: _activeCompany!.currency,
+        ),
+      ),
+    );
+
+    if (result == true) {
+      _loadExpenseData();
+    }
+  }
+
+  /// Calculates monthly equivalent for each expense based on recurrence.
+  double _monthlyAmount(Expense e) {
+    switch (e.recurrence) {
+      case ExpenseRecurrence.weekly:
+        return e.amount * 52 / 12;
+      case ExpenseRecurrence.monthly:
+        return e.amount;
+      case ExpenseRecurrence.quarterly:
+        return e.amount / 3;
+      case ExpenseRecurrence.yearly:
+        return e.amount / 12;
+      case ExpenseRecurrence.oneTime:
+        return e.amount;
+    }
+  }
+
+  double get _totalMonthlyBurn =>
+      _expenses.fold(0.0, (sum, e) => sum + _monthlyAmount(e));
+
+  Map<ExpenseCategory, double> get _categoryTotals {
+    final map = <ExpenseCategory, double>{};
+    for (final e in _expenses) {
+      map[e.category] = (map[e.category] ?? 0.0) + _monthlyAmount(e);
+    }
+    return map;
+  }
+
+  String _formatCurrency(double amount) {
+    if (amount >= 1000000) {
+      return '\$${(amount / 1000000).toStringAsFixed(1)}M';
+    } else if (amount >= 1000) {
+      return '\$${(amount / 1000).toStringAsFixed(1)}k';
+    }
+    return '\$${amount.toStringAsFixed(0)}';
+  }
 
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
-    final repo = OnboardingRepository();
-    final hasExpenses = repo.hasExpenses;
-    
-    if (!hasExpenses) {
-      return _buildEmptyState(context);
+
+    if (_isLoading) {
+      return const Center(child: CircularProgressIndicator());
     }
-    
-    return SingleChildScrollView(
-      padding: const EdgeInsets.all(16.0),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.stretch,
-        children: [
-          // Chart Placeholder
-          Card(
-            child: Container(
-              height: 200,
-              padding: const EdgeInsets.all(16),
-              child: Center(
-                child: Text(
-                  '[ Expense Bar Chart Placeholder ]',
-                  style: theme.textTheme.bodyMedium?.copyWith(color: theme.colorScheme.primary),
+
+    if (_hasError) {
+      return Center(
+        child: Padding(
+          padding: const EdgeInsets.all(24.0),
+          child: Column(
+            mainAxisAlignment: MainAxisAlignment.center,
+            children: [
+              Icon(Icons.error_outline, size: 64, color: theme.colorScheme.error),
+              const SizedBox(height: 16),
+              Text('Failed to load expenses', style: theme.textTheme.titleMedium),
+              const SizedBox(height: 8),
+              Text(
+                _errorMessage,
+                textAlign: TextAlign.center,
+                style: theme.textTheme.bodyMedium?.copyWith(
+                  color: theme.colorScheme.onSurface.withValues(alpha: 0.6),
                 ),
               ),
-            ),
+              const SizedBox(height: 24),
+              ElevatedButton.icon(
+                onPressed: _loadExpenseData,
+                icon: const Icon(Icons.refresh),
+                label: const Text('Retry'),
+              ),
+            ],
           ),
-          
-          const SizedBox(height: 24),
-          Text('Breakdown (excluding payroll)', style: theme.textTheme.titleLarge),
-          const SizedBox(height: 12),
-          
-          Card(
-            clipBehavior: Clip.antiAlias,
-            child: Column(
-              children: [
-                _buildExpenseTile(context, 'Total Monthly Expenses', 'Calculated from Onboarding', '\$${repo.currentData?.financials?.monthlyExpenses ?? 0}', Icons.account_balance, Colors.blue),
-                const Divider(height: 1),
-                _buildExpenseTile(context, 'Cloud Services', 'AWS, Vercel', '\$12,500', Icons.cloud, Colors.blue),
-                const Divider(height: 1),
-                _buildExpenseTile(context, 'Marketing', 'Meta Ads, Google', '\$8,200', Icons.campaign, Colors.orange),
-                const Divider(height: 1),
-                _buildExpenseTile(context, 'Office Rent', 'WeWork', '\$5,000', Icons.business, Colors.purple),
-                const Divider(height: 1),
-                _buildExpenseTile(context, 'Software Licenses', 'Github, Linear, Figma', '\$1,800', Icons.code, Colors.teal),
-              ],
-            ),
+        ),
+      );
+    }
+
+    if (_expenses.isEmpty) {
+      return Scaffold(
+        body: _buildEmptyState(context),
+        floatingActionButton: FloatingActionButton(
+          onPressed: _openAddExpense,
+          backgroundColor: theme.colorScheme.primary,
+          tooltip: 'Add Expense',
+          child: const Icon(Icons.add),
+        ),
+      );
+    }
+
+    final categoryTotals = _categoryTotals;
+
+    return Scaffold(
+      floatingActionButton: FloatingActionButton(
+        onPressed: _openAddExpense,
+        backgroundColor: theme.colorScheme.primary,
+        tooltip: 'Add Expense',
+        child: const Icon(Icons.add),
+      ),
+      body: RefreshIndicator(
+        onRefresh: _loadExpenseData,
+        child: SingleChildScrollView(
+          physics: const AlwaysScrollableScrollPhysics(),
+          padding: const EdgeInsets.all(16.0),
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.stretch,
+            children: [
+              StatsCard(
+                title: 'Total Monthly Expenses',
+                value: _formatCurrency(_totalMonthlyBurn),
+                trend: '${_expenses.length} active recurring & one-time',
+                isPositive: false,
+                isHighlighted: true,
+              ),
+              const SizedBox(height: 24),
+
+              Text('Category Breakdown', style: theme.textTheme.titleLarge),
+              const SizedBox(height: 12),
+              Card(
+                clipBehavior: Clip.antiAlias,
+                child: ListView.separated(
+                  shrinkWrap: true,
+                  physics: const NeverScrollableScrollPhysics(),
+                  itemCount: categoryTotals.length,
+                  separatorBuilder: (context, index) => const Divider(height: 1),
+                  itemBuilder: (context, index) {
+                    final cat = categoryTotals.keys.elementAt(index);
+                    final amt = categoryTotals[cat]!;
+                    final percent = _totalMonthlyBurn > 0
+                        ? ((amt / _totalMonthlyBurn) * 100).toStringAsFixed(0)
+                        : '0';
+                    return _buildExpenseTile(
+                      context,
+                      cat.displayName,
+                      '$percent% of monthly operational spend',
+                      '${_formatCurrency(amt)}/mo',
+                      cat.icon,
+                      cat.color,
+                    );
+                  },
+                ),
+              ),
+              const SizedBox(height: 24),
+
+              Row(
+                mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                children: [
+                  Text('All Expenses', style: theme.textTheme.titleLarge),
+                  Text(
+                    '${_expenses.length} entries',
+                    style: theme.textTheme.bodyMedium?.copyWith(
+                      color: theme.colorScheme.onSurface.withValues(alpha: 0.6),
+                    ),
+                  ),
+                ],
+              ),
+              const SizedBox(height: 12),
+
+              Card(
+                clipBehavior: Clip.antiAlias,
+                child: ListView.separated(
+                  shrinkWrap: true,
+                  physics: const NeverScrollableScrollPhysics(),
+                  itemCount: _expenses.length,
+                  separatorBuilder: (context, index) => const Divider(height: 1),
+                  itemBuilder: (context, index) {
+                    final exp = _expenses[index];
+                    final detail = exp.vendor != null && exp.vendor!.isNotEmpty
+                        ? '${exp.vendor} • ${exp.recurrence.displayName}'
+                        : exp.recurrence.displayName;
+                    return _buildExpenseTile(
+                      context,
+                      exp.title,
+                      detail,
+                      _formatCurrency(exp.amount),
+                      exp.category.icon,
+                      exp.category.color,
+                    );
+                  },
+                ),
+              ),
+              const SizedBox(height: 80),
+            ],
           ),
-        ],
+        ),
       ),
     );
   }
@@ -78,7 +300,7 @@ class ExpensesScreen extends StatelessWidget {
             ),
             const SizedBox(height: 32),
             ElevatedButton.icon(
-              onPressed: () {},
+              onPressed: _openAddExpense,
               icon: const Icon(Icons.add),
               label: const Text('Add Expense'),
               style: ElevatedButton.styleFrom(
@@ -91,20 +313,30 @@ class ExpensesScreen extends StatelessWidget {
     );
   }
 
-  Widget _buildExpenseTile(BuildContext context, String category, String details, String amount, IconData icon, Color color) {
+  Widget _buildExpenseTile(
+    BuildContext context,
+    String title,
+    String subtitle,
+    String amount,
+    IconData icon,
+    Color color,
+  ) {
     return ListTile(
       leading: Container(
         width: 40,
         height: 40,
         decoration: BoxDecoration(
-          color: color.withValues(alpha:0.1),
+          color: color.withValues(alpha: 0.1),
           borderRadius: BorderRadius.circular(10),
         ),
         child: Icon(icon, color: color),
       ),
-      title: Text(category, style: const TextStyle(fontWeight: FontWeight.bold)),
-      subtitle: Text(details),
-      trailing: Text(amount, style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 16)),
+      title: Text(title, style: const TextStyle(fontWeight: FontWeight.bold)),
+      subtitle: Text(subtitle),
+      trailing: Text(
+        amount,
+        style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 15),
+      ),
     );
   }
 }

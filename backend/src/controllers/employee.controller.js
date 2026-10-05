@@ -5,9 +5,17 @@ import { asyncHandler } from '../middleware/asyncHandler.js';
 const employeeService = new EmployeeService();
 
 export const getEmployees = asyncHandler(async (req, res) => {
-  const { skip = 0, take = 10 } = req.query;
-  const data = await employeeService.getAllEmployees(Number(skip), Number(take));
+  const { skip = 0, take = 50, companyId } = req.query;
+  const data = companyId
+    ? await employeeService.getByCompany(companyId)
+    : await employeeService.getAllEmployees(Number(skip), Number(take));
   res.status(200).json(new ApiResponse(200, data, 'Employees retrieved successfully'));
+});
+
+export const getEmployeesByCompanyId = asyncHandler(async (req, res) => {
+  const { companyId } = req.params;
+  const data = await employeeService.getByCompany(companyId);
+  res.status(200).json(new ApiResponse(200, data, 'Company employees retrieved successfully'));
 });
 
 export const getEmployeeById = asyncHandler(async (req, res) => {

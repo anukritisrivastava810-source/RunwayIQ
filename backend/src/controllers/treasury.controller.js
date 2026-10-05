@@ -5,9 +5,17 @@ import { asyncHandler } from '../middleware/asyncHandler.js';
 const treasuryService = new TreasuryService();
 
 export const getTreasurys = asyncHandler(async (req, res) => {
-  const { skip = 0, take = 10 } = req.query;
-  const data = await treasuryService.getAllTreasurys(Number(skip), Number(take));
+  const { skip = 0, take = 50, companyId } = req.query;
+  const data = companyId
+    ? await treasuryService.getByCompany(companyId)
+    : await treasuryService.getAllTreasurys(Number(skip), Number(take));
   res.status(200).json(new ApiResponse(200, data, 'Treasurys retrieved successfully'));
+});
+
+export const getTreasurysByCompanyId = asyncHandler(async (req, res) => {
+  const { companyId } = req.params;
+  const data = await treasuryService.getByCompany(companyId);
+  res.status(200).json(new ApiResponse(200, data, 'Company treasurys retrieved successfully'));
 });
 
 export const getTreasuryById = asyncHandler(async (req, res) => {

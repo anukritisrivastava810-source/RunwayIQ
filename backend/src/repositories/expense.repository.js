@@ -6,11 +6,18 @@ export class ExpenseRepository {
   }
 
   async findById(id) {
-    return await prisma.expense.findUnique({ where: { id } });
+    return await prisma.expense.findUnique({
+      where: { id },
+      include: { department: true },
+    });
   }
 
   async findAll(skip, take) {
-    return await prisma.expense.findMany({ skip, take });
+    return await prisma.expense.findMany({
+      skip,
+      take,
+      include: { department: true },
+    });
   }
 
   async update(id, data) {
@@ -25,6 +32,9 @@ export class ExpenseRepository {
   }
 
   async findByCompany(companyId) {
-    return await prisma.expense.findMany({ where: { companyId } });
+    return await prisma.expense.findMany({
+      where: { companyId },
+      include: { department: true },
+    });
   }
 }

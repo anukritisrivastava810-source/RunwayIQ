@@ -18,6 +18,7 @@ router.use('/dashboard', dashboardRoutes);
 router.use('/employees', employeeRoutes);
 router.use('/departments', departmentRoutes);
 router.use('/expenses', expenseRoutes);
+router.use('/investor', investorRoutes);
 router.use('/investors', investorRoutes);
 router.use('/funding', fundingRoutes);
 router.use('/treasury', treasuryRoutes);

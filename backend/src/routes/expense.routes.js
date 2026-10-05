@@ -1,12 +1,13 @@
 import { Router } from 'express';
-import { getExpenses, getExpenseById, createExpense, updateExpense, deleteExpense } from '../controllers/expense.controller.js';
-import { authenticateUser } from '../middleware/auth.middleware.js';
+import { getExpenses, getExpensesByCompanyId, getExpenseById, createExpense, updateExpense, deleteExpense } from '../controllers/expense.controller.js';
+// import { authenticateUser } from '../middleware/auth.middleware.js';
 
 const router = Router();
 
-router.use(authenticateUser);
+// router.use(authenticateUser);
 
 router.get('/', getExpenses);
+router.get('/company/:companyId', getExpensesByCompanyId);
 router.get('/:id', getExpenseById);
 router.post('/', createExpense);
 router.put('/:id', updateExpense);

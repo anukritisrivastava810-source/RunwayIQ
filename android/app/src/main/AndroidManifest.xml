@@ -1,6 +1,8 @@
 <manifest xmlns:android="http://schemas.android.com/apk/res/android">
+    <!-- Required for all HTTP/HTTPS API calls in release builds -->
+    <uses-permission android:name="android.permission.INTERNET"/>
     <application
-        android:label="runway_iq"
+        android:label="RunwayIQ"
         android:name="${applicationName}"
         android:icon="@mipmap/ic_launcher">
         <activity

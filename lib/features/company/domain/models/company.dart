@@ -58,9 +58,9 @@ class Company {
     if (country != null) map['country'] = country;
     map['currency'] = currency;
     map['stage'] = _stageToEnum(stage);
-    if (foundedAt != null) map['foundedAt'] = foundedAt!.toIso8601String();
-    if (createdAt != null) map['createdAt'] = createdAt!.toIso8601String();
-    if (updatedAt != null) map['updatedAt'] = updatedAt!.toIso8601String();
+    if (foundedAt != null) map['foundedAt'] = foundedAt!.toUtc().toIso8601String();
+    if (createdAt != null) map['createdAt'] = createdAt!.toUtc().toIso8601String();
+    if (updatedAt != null) map['updatedAt'] = updatedAt!.toUtc().toIso8601String();
     return map;
   }
 

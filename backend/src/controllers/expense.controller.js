@@ -5,9 +5,17 @@ import { asyncHandler } from '../middleware/asyncHandler.js';
 const expenseService = new ExpenseService();
 
 export const getExpenses = asyncHandler(async (req, res) => {
-  const { skip = 0, take = 10 } = req.query;
-  const data = await expenseService.getAllExpenses(Number(skip), Number(take));
+  const { skip = 0, take = 50, companyId } = req.query;
+  const data = companyId
+    ? await expenseService.getByCompany(companyId)
+    : await expenseService.getAllExpenses(Number(skip), Number(take));
   res.status(200).json(new ApiResponse(200, data, 'Expenses retrieved successfully'));
+});
+
+export const getExpensesByCompanyId = asyncHandler(async (req, res) => {
+  const { companyId } = req.params;
+  const data = await expenseService.getByCompany(companyId);
+  res.status(200).json(new ApiResponse(200, data, 'Company expenses retrieved successfully'));
 });
 
 export const getExpenseById = asyncHandler(async (req, res) => {
