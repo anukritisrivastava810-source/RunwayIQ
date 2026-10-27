@@ -25,14 +25,14 @@
             <div class='fl pad1y space-right2'>
                 <span class="strong">0% </span>
                 <span class="quiet">Statements</span>
-                <span class='fraction'>0/18</span>
+                <span class='fraction'>0/16</span>
             </div>
         
             
             <div class='fl pad1y space-right2'>
                 <span class="strong">0% </span>
                 <span class="quiet">Branches</span>
-                <span class='fraction'>0/8</span>
+                <span class='fraction'>0/12</span>
             </div>
         
             
@@ -46,7 +46,7 @@
             <div class='fl pad1y space-right2'>
                 <span class="strong">0% </span>
                 <span class="quiet">Lines</span>
-                <span class='fraction'>0/18</span>
+                <span class='fraction'>0/16</span>
             </div>
         
             
@@ -158,7 +158,9 @@
 <a name='L93'></a><a href='#L93'>93</a>
 <a name='L94'></a><a href='#L94'>94</a>
 <a name='L95'></a><a href='#L95'>95</a>
-<a name='L96'></a><a href='#L96'>96</a></td><td class="line-coverage quiet"><span class="cline-any cline-neutral">&nbsp;</span>
+<a name='L96'></a><a href='#L96'>96</a>
+<a name='L97'></a><a href='#L97'>97</a>
+<a name='L98'></a><a href='#L98'>98</a></td><td class="line-coverage quiet"><span class="cline-any cline-neutral">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
@@ -176,21 +178,9 @@
 <span class="cline-any cline-no">&nbsp;</span>
 <span class="cline-any cline-no">&nbsp;</span>
 <span class="cline-any cline-no">&nbsp;</span>
-<span class="cline-any cline-no">&nbsp;</span>
-<span class="cline-any cline-no">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
 <span class="cline-any cline-no">&nbsp;</span>
-<span class="cline-any cline-neutral">&nbsp;</span>
-<span class="cline-any cline-neutral">&nbsp;</span>
 <span class="cline-any cline-no">&nbsp;</span>
-<span class="cline-any cline-neutral">&nbsp;</span>
-<span class="cline-any cline-neutral">&nbsp;</span>
-<span class="cline-any cline-neutral">&nbsp;</span>
-<span class="cline-any cline-neutral">&nbsp;</span>
-<span class="cline-any cline-neutral">&nbsp;</span>
-<span class="cline-any cline-neutral">&nbsp;</span>
-<span class="cline-any cline-neutral">&nbsp;</span>
-<span class="cline-any cline-neutral">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
 <span class="cline-any cline-no">&nbsp;</span>
@@ -214,6 +204,17 @@
 <span class="cline-any cline-neutral">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
 <span class="cline-any cline-no">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
@@ -225,15 +226,18 @@
 <span class="cline-any cline-neutral">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
 <span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
 <span class="cline-any cline-no">&nbsp;</span>
 <span class="cline-any cline-no">&nbsp;</span>
 <span class="cline-any cline-no">&nbsp;</span>
 <span class="cline-any cline-no">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
-<span class="cline-any cline-no">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
 <span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
@@ -268,17 +272,16 @@ class CompanyRepository {
    * @returns {Promise&lt;Object&gt;} The created company object
    */
 <span class="fstat-no" title="function not covered" >  as</span>ync create(companyData) {
-    const data = <span class="cstat-no" title="statement not covered" >{ ...companyData };</span>
-<span class="cstat-no" title="statement not covered" >    if (data.foundedAt) {</span>
-      const date = <span class="cstat-no" title="statement not covered" >new Date(data.foundedAt);</span>
-<span class="cstat-no" title="statement not covered" >      if (isNaN(date.getTime())) {</span>
-<span class="cstat-no" title="statement not covered" >        throw new Error('Invalid value for foundedAt');</span>
-      }
-<span class="cstat-no" title="statement not covered" >      data.foundedAt = date;</span>
+<span class="cstat-no" title="statement not covered" >    console.log(companyData);</span>
+<span class="cstat-no" title="statement not covered" >    console.log(companyData.foundedAt);</span>
+<span class="cstat-no" title="statement not covered" >    console.log(companyData.foundedAt instanceof Date);</span>
+&nbsp;
+<span class="cstat-no" title="statement not covered" >    if (companyData.foundedAt instanceof Date) {</span>
+<span class="cstat-no" title="statement not covered" >        console.log(companyData.foundedAt.toISOString());</span>
     }
 &nbsp;
 <span class="cstat-no" title="statement not covered" >    return await prisma.company.create({</span>
-      data,
+      data: companyData,
     });
   }
 &nbsp;
@@ -320,17 +323,20 @@ class CompanyRepository {
    */
 <span class="fstat-no" title="function not covered" >  as</span>ync update(id, updateData) {
     const data = <span class="cstat-no" title="statement not covered" >{ ...updateData };</span>
-<span class="cstat-no" title="statement not covered" >    if (data.foundedAt) {</span>
-      const date = <span class="cstat-no" title="statement not covered" >new Date(data.foundedAt);</span>
-<span class="cstat-no" title="statement not covered" >      if (isNaN(date.getTime())) {</span>
+&nbsp;
+<span class="cstat-no" title="statement not covered" >    if (data.foundedAt !== undefined &amp;&amp; data.foundedAt !== null) {</span>
+      const parsedDate = <span class="cstat-no" title="statement not covered" >new Date(data.foundedAt);</span>
+<span class="cstat-no" title="statement not covered" >      if (isNaN(parsedDate.getTime())) {</span>
 <span class="cstat-no" title="statement not covered" >        throw new Error('Invalid value for foundedAt');</span>
       }
-<span class="cstat-no" title="statement not covered" >      data.foundedAt = date;</span>
     }
 &nbsp;
 <span class="cstat-no" title="statement not covered" >    return await prisma.company.update({</span>
       where: { id },
-      data,
+      data: {
+        ...data,
+        ...(data.foundedAt !== undefined &amp;&amp; { foundedAt: data.foundedAt ? new Date(data.foundedAt) : null })
+      }
     });
   }
 &nbsp;
@@ -355,7 +361,7 @@ export default new CompanyRepository();
             <div class='footer quiet pad2 space-top1 center small'>
                 Code coverage generated by
                 <a href="https://istanbul.js.org/" target="_blank" rel="noopener noreferrer">istanbul</a>
-                at 2026-07-31T06:51:09.774Z
+                at 2026-10-26T13:18:08.396Z
             </div>
         <script src="../../prettify.js"></script>
         <script>

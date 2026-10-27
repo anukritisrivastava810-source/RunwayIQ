@@ -262,4 +262,117 @@ export class AnalyticsService {
     query.where.companyId = companyId;
     return await prisma.scenario.findMany(query);
   }
+
+  // ==========================================
+  // HISTORICAL BURN TREND
+  // ==========================================
+
+  /**
+   * Normalises a single expense record to its monthly-equivalent amount,
+   * based on the expense's recurrence type.
+   *
+   * ONE_TIME  → full amount in the month it occurred
+   * WEEKLY    → amount × 52 / 12
+   * MONTHLY   → amount × 1
+   * QUARTERLY → amount / 3
+   * YEARLY    → amount / 12
+   *
+   * @param {number} amount   The raw expense amount.
+   * @param {string} recurrence  The ExpenseRecurrence enum value.
+   * @returns {number}
+   */
+  _normaliseMonthlyExpense(amount, recurrence) {
+    switch (recurrence) {
+      case 'WEEKLY':    return amount * (52 / 12);
+      case 'MONTHLY':   return amount;
+      case 'QUARTERLY': return amount / 3;
+      case 'YEARLY':    return amount / 12;
+      case 'ONE_TIME':
+      default:          return amount;
+    }
+  }
+
+  /**
+   * Generates an array of the last `months` calendar months (inclusive of the
+   * current month), each represented as { label, start, end }.
+   *
+   * @param {number} months  Number of months to generate (default 6).
+   * @returns {{ label: string, start: Date, end: Date }[]}
+   */
+  _generateMonthWindows(months = 6) {
+    const windows = [];
+    const now = new Date();
+    for (let i = months - 1; i >= 0; i--) {
+      const year  = now.getMonth() - i < 0
+        ? now.getFullYear() - 1
+        : now.getFullYear();
+      const month = ((now.getMonth() - i) % 12 + 12) % 12; // 0-indexed
+      const start = new Date(year, month, 1, 0, 0, 0, 0);
+      const end   = new Date(year, month + 1, 0, 23, 59, 59, 999); // last day of month
+      const label = `${year}-${String(month + 1).padStart(2, '0')}`;
+      windows.push({ label, start, end });
+    }
+    return windows;
+  }
+
+  /**
+   * Returns real historical burn-rate data broken down by month.
+   *
+   * For each calendar month the method calculates:
+   *   - expenseBurn  : sum of normalised monthly-equivalent expense amounts
+   *   - payrollBurn  : sum of (annualSalary / 12) for employees active in that month
+   *   - totalBurn    : expenseBurn + payrollBurn
+   *
+   * Months with no activity return zeros rather than fabricated values.
+   *
+   * @param {string} companyId  The company whose data to aggregate.
+   * @param {number} months     How many months back to look (default 6).
+   * @returns {Promise<{ month: string, expenseBurn: number, payrollBurn: number, totalBurn: number }[]>}
+   */
+  async getBurnTrend(companyId, months = 6) {
+    const windows = this._generateMonthWindows(months);
+
+    const results = await Promise.all(windows.map(async ({ label, start, end }) => {
+      // ── Expenses in this month ──────────────────────────────────────────
+      const expenses = await prisma.expense.findMany({
+        where: {
+          companyId,
+          expenseDate: { gte: start, lte: end }
+        },
+        select: { amount: true, recurrence: true }
+      });
+
+      const expenseBurn = expenses.reduce((sum, exp) => {
+        return sum + this._normaliseMonthlyExpense(Number(exp.amount), exp.recurrence);
+      }, 0);
+
+      // ── Active payroll in this month ────────────────────────────────────
+      // An employee is "active" in month M when:
+      //   joinedAt  ≤ end   AND  (exitedAt IS NULL  OR  exitedAt >= start)
+      const activeEmployees = await prisma.employee.findMany({
+        where: {
+          companyId,
+          joinedAt:  { lte: end },
+          OR: [
+            { exitedAt: null },
+            { exitedAt: { gte: start } }
+          ]
+        },
+        select: { annualSalary: true }
+      });
+
+      const payrollBurn = activeEmployees.reduce((sum, emp) => {
+        return sum + Number(emp.annualSalary) / 12;
+      }, 0);
+
+      return {
+        month:       label,
+        expenseBurn: Math.round(expenseBurn * 100) / 100,
+        payrollBurn: Math.round(payrollBurn * 100) / 100,
+        totalBurn:   Math.round((expenseBurn + payrollBurn) * 100) / 100
+      };
+    }));
+
+    return results;
+  }
 }

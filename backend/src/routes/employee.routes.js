@@ -1,16 +1,14 @@
 import { Router } from 'express';
-import { getEmployees, getEmployeesByCompanyId, getEmployeeById, createEmployee, updateEmployee, deleteEmployee } from '../controllers/employee.controller.js';
-// import { authenticateUser } from '../middleware/auth.middleware.js';
+import employeeController from '../controllers/employee.controller.js';
 
 const router = Router();
 
-// router.use(authenticateUser);
-
-router.get('/', getEmployees);
-router.get('/company/:companyId', getEmployeesByCompanyId);
-router.get('/:id', getEmployeeById);
-router.post('/', createEmployee);
-router.put('/:id', updateEmployee);
-router.delete('/:id', deleteEmployee);
+router.post('/', employeeController.createEmployee);
+router.get('/', employeeController.getAllEmployees);
+// Ordering is important: static routes before dynamic parameters
+router.get('/company/:companyId', employeeController.getEmployeesByCompanyId);
+router.get('/:id', employeeController.getEmployeeById);
+router.put('/:id', employeeController.updateEmployee);
+router.delete('/:id', employeeController.deleteEmployee);
 
 export default router;

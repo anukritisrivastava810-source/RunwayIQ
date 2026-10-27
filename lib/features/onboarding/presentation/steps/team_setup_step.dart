@@ -13,6 +13,10 @@ class TeamSetupStep extends StatefulWidget {
   final VoidCallback? onNext;
   final String? companyId;
   final String? companyCurrency;
+  final Employee? employee;
+  final CompanyRepository? companyRepository;
+  final DepartmentRepository? departmentRepository;
+  final EmployeeRepository? employeeRepository;
 
   const TeamSetupStep({
     super.key,
@@ -20,9 +24,13 @@ class TeamSetupStep extends StatefulWidget {
     this.onNext,
     this.companyId,
     this.companyCurrency,
+    this.employee,
+    this.companyRepository,
+    this.departmentRepository,
+    this.employeeRepository,
   });
 
-  bool get isStandalone => companyId != null || data == null;
+  bool get isStandalone => companyId != null || data == null || employee != null;
 
   @override
   State<TeamSetupStep> createState() => _TeamSetupStepState();
@@ -46,7 +54,7 @@ class _TeamSetupStepState extends State<TeamSetupStep> {
   DateTime _joinedAt = DateTime.now();
   bool _isSubmitting = false;
 
-  final List<String> _departmentOptions = [
+  late final List<String> _departmentOptions = [
     'Engineering',
     'Product',
     'Design',
@@ -59,10 +67,33 @@ class _TeamSetupStepState extends State<TeamSetupStep> {
     'Legal',
   ];
 
+  CompanyRepository get _companyRepository =>
+      widget.companyRepository ?? CompanyRepository();
+  DepartmentRepository get _departmentRepository =>
+      widget.departmentRepository ?? DepartmentRepository();
+  EmployeeRepository get _employeeRepository =>
+      widget.employeeRepository ?? EmployeeRepository();
+
   @override
   void initState() {
     super.initState();
-    if (widget.isStandalone) {
+    if (widget.employee != null) {
+      final emp = widget.employee!;
+      _firstName = emp.firstName;
+      _lastName = emp.lastName;
+      _email = emp.email;
+      _role = emp.role;
+      _departmentName = emp.departmentName.isNotEmpty
+          ? emp.departmentName
+          : (emp.department?.name.isNotEmpty == true ? emp.department!.name : 'Engineering');
+      _annualSalary = emp.annualSalary;
+      _currency = emp.currency.toJson();
+      _status = emp.status;
+      _joinedAt = emp.joinedAt;
+      if (!_departmentOptions.contains(_departmentName)) {
+        _departmentOptions.add(_departmentName);
+      }
+    } else if (widget.isStandalone) {
       _currency = widget.companyCurrency ?? 'USD';
     } else if (widget.data?.team != null) {
       _teamSize = widget.data!.team!.teamSize;
@@ -108,9 +139,9 @@ class _TeamSetupStepState extends State<TeamSetupStep> {
 
     try {
       // 1. Resolve active Company ID
-      String? activeCompanyId = widget.companyId;
+      String? activeCompanyId = widget.companyId ?? widget.employee?.companyId;
       if (activeCompanyId == null || activeCompanyId.isEmpty) {
-        final companies = await CompanyRepository().getCompanies();
+        final companies = await _companyRepository.getCompanies();
         if (companies.isNotEmpty) {
           activeCompanyId = companies.first.id;
         }
@@ -121,8 +152,7 @@ class _TeamSetupStepState extends State<TeamSetupStep> {
       }
 
       // 2. Resolve or create Department
-      final departmentRepo = DepartmentRepository();
-      final existingDepts = await departmentRepo.getDepartmentsByCompany(activeCompanyId);
+      final existingDepts = await _departmentRepository.getDepartmentsByCompany(activeCompanyId);
       String? departmentId;
       final trimmedDept = _departmentName.trim();
       for (final d in existingDepts) {
@@ -133,7 +163,7 @@ class _TeamSetupStepState extends State<TeamSetupStep> {
       }
 
       if (departmentId == null || departmentId.isEmpty) {
-        final newDept = await departmentRepo.createDepartment(
+        final newDept = await _departmentRepository.createDepartment(
           Department(
             companyId: activeCompanyId,
             name: trimmedDept.isNotEmpty ? trimmedDept : 'General',
@@ -146,28 +176,51 @@ class _TeamSetupStepState extends State<TeamSetupStep> {
         throw UnknownException('Failed to resolve or register department.');
       }
 
-      // 3. Create Employee
-      final employeeRepo = EmployeeRepository();
-      final newEmployee = Employee(
-        companyId: activeCompanyId,
-        departmentId: departmentId,
-        firstName: _firstName.trim(),
-        lastName: _lastName.trim(),
-        email: _email.trim(),
-        role: _role.trim(),
-        annualSalary: _annualSalary,
-        currency: EmployeeCurrency.fromJson(_currency),
-        status: _status,
-        joinedAt: _joinedAt,
-      );
-
-      await employeeRepo.createEmployee(newEmployee);
-
-      if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(content: Text('Employee added successfully!')),
+      // 3. Create or Update Employee
+      if (widget.employee != null && widget.employee!.id != null && widget.employee!.id!.isNotEmpty) {
+        final updatedEmployee = widget.employee!.copyWith(
+          companyId: activeCompanyId,
+          departmentId: departmentId,
+          firstName: _firstName.trim(),
+          lastName: _lastName.trim(),
+          email: _email.trim(),
+          role: _role.trim(),
+          annualSalary: _annualSalary,
+          currency: EmployeeCurrency.fromJson(_currency),
+          status: _status,
+          joinedAt: _joinedAt,
         );
-        Navigator.of(context).pop(true);
+
+        await _employeeRepository.updateEmployee(widget.employee!.id!, updatedEmployee);
+
+        if (mounted) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            const SnackBar(content: Text('Employee updated successfully!')),
+          );
+          Navigator.of(context).pop(true);
+        }
+      } else {
+        final newEmployee = Employee(
+          companyId: activeCompanyId,
+          departmentId: departmentId,
+          firstName: _firstName.trim(),
+          lastName: _lastName.trim(),
+          email: _email.trim(),
+          role: _role.trim(),
+          annualSalary: _annualSalary,
+          currency: EmployeeCurrency.fromJson(_currency),
+          status: _status,
+          joinedAt: _joinedAt,
+        );
+
+        await _employeeRepository.createEmployee(newEmployee);
+
+        if (mounted) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            const SnackBar(content: Text('Employee added successfully!')),
+          );
+          Navigator.of(context).pop(true);
+        }
       }
     } on ApiException catch (e) {
       if (mounted) {
@@ -215,7 +268,7 @@ class _TeamSetupStepState extends State<TeamSetupStep> {
     if (widget.isStandalone) {
       return Scaffold(
         appBar: AppBar(
-          title: const Text('Add Employee'),
+          title: Text(widget.employee != null ? 'Edit Employee' : 'Add Employee'),
         ),
         body: _buildStandaloneForm(context),
       );
@@ -387,7 +440,7 @@ class _TeamSetupStepState extends State<TeamSetupStep> {
             const SizedBox(height: 40),
 
             CustomButton(
-              text: 'Add Employee',
+              text: widget.employee != null ? 'Update Employee' : 'Add Employee',
               isLoading: _isSubmitting,
               onPressed: _submitStandalone,
             ),

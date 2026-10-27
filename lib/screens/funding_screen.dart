@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import '../widgets/stats_card.dart';
+import 'dashboard_screen.dart';
 
 import '../features/company/data/repositories/company_repository.dart';
 import '../features/company/domain/models/company.dart';
@@ -97,6 +98,7 @@ class _FundingScreenState extends State<FundingScreen> {
 
     if (result == true) {
       _loadFundingData();
+      DashboardScreen.notifyDataChanged();
     }
   }
 
@@ -130,6 +132,7 @@ class _FundingScreenState extends State<FundingScreen> {
     return Scaffold(
       body: _buildBody(context, theme),
       floatingActionButton: FloatingActionButton(
+        heroTag: 'funding_fab',
         onPressed: _openAddFundingRound,
         backgroundColor: theme.colorScheme.primary,
         foregroundColor: Colors.white,

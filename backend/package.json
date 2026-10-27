@@ -16,7 +16,8 @@
     "db:seed": "node prisma/seed.js",
     "db:studio": "prisma studio",
     "db:reset": "prisma migrate reset --force",
-    "test": "NODE_OPTIONS=--experimental-vm-modules jest"
+    "test": "NODE_OPTIONS=--experimental-vm-modules jest",
+    "test:employee": "node tests/employee.integration.test.js"
   },
   "dependencies": {
     "@prisma/client": "^6.0.0",

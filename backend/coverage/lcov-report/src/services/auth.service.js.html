@@ -23,30 +23,30 @@
         <div class='clearfix'>
             
             <div class='fl pad1y space-right2'>
-                <span class="strong">5.88% </span>
+                <span class="strong">52.94% </span>
                 <span class="quiet">Statements</span>
-                <span class='fraction'>1/17</span>
+                <span class='fraction'>9/17</span>
             </div>
         
             
             <div class='fl pad1y space-right2'>
-                <span class="strong">0% </span>
+                <span class="strong">50% </span>
                 <span class="quiet">Branches</span>
-                <span class='fraction'>0/8</span>
+                <span class='fraction'>4/8</span>
             </div>
         
             
             <div class='fl pad1y space-right2'>
-                <span class="strong">0% </span>
+                <span class="strong">50% </span>
                 <span class="quiet">Functions</span>
-                <span class='fraction'>0/2</span>
+                <span class='fraction'>1/2</span>
             </div>
         
             
             <div class='fl pad1y space-right2'>
-                <span class="strong">7.14% </span>
+                <span class="strong">57.14% </span>
                 <span class="quiet">Lines</span>
-                <span class='fraction'>1/14</span>
+                <span class='fraction'>8/14</span>
             </div>
         
             
@@ -61,7 +61,7 @@
             </div>
         </template>
     </div>
-    <div class='status-line low'></div>
+    <div class='status-line medium'></div>
     <pre><table class="coverage">
 <tr><td class="line-count quiet"><a name='L1'></a><a href='#L1'>1</a>
 <a name='L2'></a><a href='#L2'>2</a>
@@ -133,20 +133,20 @@
 <span class="cline-any cline-neutral">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
-<span class="cline-any cline-no">&nbsp;</span>
-<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-yes">2x</span>
+<span class="cline-any cline-yes">2x</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
-<span class="cline-any cline-no">&nbsp;</span>
-<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-yes">1x</span>
+<span class="cline-any cline-yes">1x</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
-<span class="cline-any cline-no">&nbsp;</span>
-<span class="cline-any cline-neutral">&nbsp;</span>
-<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-yes">1x</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
-<span class="cline-any cline-no">&nbsp;</span>
-<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-yes">1x</span>
+<span class="cline-any cline-yes">1x</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span></td><td class="text"><pre class="prettyprint lang-js">import { UserRepository } from '../repositories/user.repository.js';
@@ -175,21 +175,21 @@ export class AuthService {
 <span class="cstat-no" title="statement not covered" >    return userWithoutPassword;</span>
   }
 &nbsp;
-<span class="fstat-no" title="function not covered" >  as</span>ync login(email, password) {
-    const user = <span class="cstat-no" title="statement not covered" >await userRepository.findByEmail(email);</span>
-<span class="cstat-no" title="statement not covered" >    if (!user) <span class="cstat-no" title="statement not covered" >throw new ApiError(401, 'Invalid credentials');</span></span>
+  async login(email, password) {
+    const user = await userRepository.findByEmail(email);
+    if (!user) throw new ApiError(401, 'Invalid credentials');
 &nbsp;
-    const isPasswordValid = <span class="cstat-no" title="statement not covered" >await bcrypt.compare(password, user.passwordHash);</span>
-<span class="cstat-no" title="statement not covered" >    if (!isPasswordValid) <span class="cstat-no" title="statement not covered" >throw new ApiError(401, 'Invalid credentials');</span></span>
+    const isPasswordValid = await bcrypt.compare(password, user.passwordHash);
+    <span class="missing-if-branch" title="if path not taken" >I</span>if (!isPasswordValid) <span class="cstat-no" title="statement not covered" >throw new ApiError(401, 'Invalid credentials');</span>
 &nbsp;
-    const token = <span class="cstat-no" title="statement not covered" >jwt.sign(</span>
+    const token = jwt.sign(
       { id: user.id, email: user.email, role: user.role, companyId: user.companyId },
-      process.env.JWT_SECRET || 'supersecret',
+      process.env.JWT_SECRET || <span class="branch-1 cbranch-no" title="branch not covered" >'supersecret',</span>
       { expiresIn: '1d' }
     );
 &nbsp;
-    const { passwordHash: _, ...userWithoutPassword } = <span class="cstat-no" title="statement not covered" >user;</span>
-<span class="cstat-no" title="statement not covered" >    return { user: userWithoutPassword, token };</span>
+    const { passwordHash: _, ...userWithoutPassword } = user;
+    return { user: userWithoutPassword, token };
   }
 }
 &nbsp;</pre></td></tr></table></pre>
@@ -199,7 +199,7 @@ export class AuthService {
             <div class='footer quiet pad2 space-top1 center small'>
                 Code coverage generated by
                 <a href="https://istanbul.js.org/" target="_blank" rel="noopener noreferrer">istanbul</a>
-                at 2026-07-31T06:51:09.774Z
+                at 2026-10-26T13:18:08.396Z
             </div>
         <script src="../../prettify.js"></script>
         <script>

@@ -79,6 +79,9 @@ class _MainLayoutState extends State<MainLayout> {
         child: BottomNavigationBar(
           currentIndex: _currentIndex,
           onTap: (index) {
+            if (index == 0) {
+              DashboardScreen.notifyDataChanged();
+            }
             setState(() {
               _currentIndex = index;
             });

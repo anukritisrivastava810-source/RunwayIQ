@@ -27,3 +27,10 @@ export const getBurnRate = asyncHandler(async (req, res) => {
 export const getPayroll = asyncHandler(async (req, res) => {
   res.status(200).json(new ApiResponse(200, {}, 'Payroll retrieved successfully'));
 });
+
+export const getBurnTrend = asyncHandler(async (req, res) => {
+  const { companyId } = req.params;
+  const months = parseInt(req.query.months, 10) || 6;
+  const data = await dashboardService.getBurnTrend(companyId, months);
+  res.status(200).json(new ApiResponse(200, data, 'Burn trend retrieved successfully'));
+});

@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'dashboard_screen.dart';
 import '../features/company/data/repositories/company_repository.dart';
 import '../features/company/domain/models/company.dart';
 import '../features/expense/data/repositories/expense_repository.dart';
@@ -93,6 +94,7 @@ class _ExpensesScreenState extends State<ExpensesScreen> {
 
     if (result == true) {
       _loadExpenseData();
+      DashboardScreen.notifyDataChanged();
     }
   }
 
@@ -174,6 +176,7 @@ class _ExpensesScreenState extends State<ExpensesScreen> {
       return Scaffold(
         body: _buildEmptyState(context),
         floatingActionButton: FloatingActionButton(
+          heroTag: 'expenses_fab_empty',
           onPressed: _openAddExpense,
           backgroundColor: theme.colorScheme.primary,
           tooltip: 'Add Expense',
@@ -186,6 +189,7 @@ class _ExpensesScreenState extends State<ExpensesScreen> {
 
     return Scaffold(
       floatingActionButton: FloatingActionButton(
+        heroTag: 'expenses_fab',
         onPressed: _openAddExpense,
         backgroundColor: theme.colorScheme.primary,
         tooltip: 'Add Expense',

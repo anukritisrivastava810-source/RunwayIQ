@@ -1,24 +1,66 @@
 import '../../../department/domain/models/department.dart';
 
+/// Matches the Prisma EmploymentStatus enum: ACTIVE | INACTIVE | NOTICE | RESIGNED
+/// Also includes aliases for UI backwards compatibility.
 enum EmploymentStatus {
   active('ACTIVE'),
+  inactive('INACTIVE'),
+  notice('NOTICE'),
+  resigned('RESIGNED'),
   probation('PROBATION'),
   noticePeriod('NOTICE_PERIOD'),
-  terminated('TERMINATED'),
-  resigned('RESIGNED');
+  terminated('TERMINATED');
 
   final String value;
   const EmploymentStatus(this.value);
 
+  /// Parses the backend string (e.g. 'ACTIVE') into this enum.
+  /// Unknown values fall back to [active].
   static EmploymentStatus fromJson(String? value) {
     if (value == null) return EmploymentStatus.active;
-    return EmploymentStatus.values.firstWhere(
-      (e) => e.value.toUpperCase() == value.toUpperCase(),
-      orElse: () => EmploymentStatus.active,
-    );
+    final upper = value.toUpperCase();
+    for (final s in EmploymentStatus.values) {
+      if (s.value == upper) return s;
+    }
+    if (upper == 'NOTICE') return EmploymentStatus.notice;
+    if (upper == 'INACTIVE') return EmploymentStatus.inactive;
+    return EmploymentStatus.active;
   }
 
-  String toJson() => value;
+  /// Returns valid Prisma EmploymentStatus enum string for backend persistence.
+  String toJson() {
+    switch (this) {
+      case EmploymentStatus.active:
+        return 'ACTIVE';
+      case EmploymentStatus.inactive:
+      case EmploymentStatus.probation:
+      case EmploymentStatus.terminated:
+        return 'INACTIVE';
+      case EmploymentStatus.notice:
+      case EmploymentStatus.noticePeriod:
+        return 'NOTICE';
+      case EmploymentStatus.resigned:
+        return 'RESIGNED';
+    }
+  }
+
+  String get displayName {
+    switch (this) {
+      case EmploymentStatus.active:
+        return 'Active';
+      case EmploymentStatus.inactive:
+        return 'Inactive';
+      case EmploymentStatus.notice:
+      case EmploymentStatus.noticePeriod:
+        return 'Notice Period';
+      case EmploymentStatus.resigned:
+        return 'Resigned';
+      case EmploymentStatus.probation:
+        return 'Probation';
+      case EmploymentStatus.terminated:
+        return 'Terminated';
+    }
+  }
 }
 
 enum EmployeeCurrency {
@@ -84,6 +126,15 @@ class Employee {
 
   String get departmentName => department?.name ?? '';
 
+  /// Safely parses a value that may arrive from the backend as a [num] or as a
+  /// decimal [String] (e.g. Prisma Decimal serialisation of annualSalary).
+  static double _parseDecimal(dynamic value) {
+    if (value == null) return 0.0;
+    if (value is num) return value.toDouble();
+    if (value is String) return double.tryParse(value) ?? 0.0;
+    return 0.0;
+  }
+
   factory Employee.fromJson(Map<String, dynamic> json) {
     return Employee(
       id: json['id'] as String?,
@@ -93,9 +144,7 @@ class Employee {
       lastName: json['lastName'] as String? ?? '',
       email: json['email'] as String? ?? '',
       role: json['role'] as String? ?? '',
-      annualSalary: (json['annualSalary'] is num)
-          ? (json['annualSalary'] as num).toDouble()
-          : double.tryParse(json['annualSalary']?.toString() ?? '0') ?? 0.0,
+      annualSalary: _parseDecimal(json['annualSalary']),
       currency: EmployeeCurrency.fromJson(json['currency'] as String?),
       status: EmploymentStatus.fromJson(json['status'] as String?),
       joinedAt: json['joinedAt'] != null
@@ -128,15 +177,91 @@ class Employee {
       'annualSalary': annualSalary,
       'currency': currency.toJson(),
       'status': status.toJson(),
-      'joinedAt': joinedAt.toIso8601String(),
+      'joinedAt': joinedAt.toUtc().toIso8601String(),
     };
     if (id != null) map['id'] = id;
-    if (exitedAt != null) map['exitedAt'] = exitedAt!.toIso8601String();
+    if (exitedAt != null) map['exitedAt'] = exitedAt!.toUtc().toIso8601String();
     if (avatarUrl != null) map['avatarUrl'] = avatarUrl;
     return map;
   }
 
+  Employee copyWith({
+    String? id,
+    String? companyId,
+    String? departmentId,
+    String? firstName,
+    String? lastName,
+    String? email,
+    String? role,
+    double? annualSalary,
+    EmployeeCurrency? currency,
+    EmploymentStatus? status,
+    DateTime? joinedAt,
+    DateTime? exitedAt,
+    String? avatarUrl,
+    DateTime? createdAt,
+    DateTime? updatedAt,
+    Department? department,
+  }) {
+    return Employee(
+      id: id ?? this.id,
+      companyId: companyId ?? this.companyId,
+      departmentId: departmentId ?? this.departmentId,
+      firstName: firstName ?? this.firstName,
+      lastName: lastName ?? this.lastName,
+      email: email ?? this.email,
+      role: role ?? this.role,
+      annualSalary: annualSalary ?? this.annualSalary,
+      currency: currency ?? this.currency,
+      status: status ?? this.status,
+      joinedAt: joinedAt ?? this.joinedAt,
+      exitedAt: exitedAt ?? this.exitedAt,
+      avatarUrl: avatarUrl ?? this.avatarUrl,
+      createdAt: createdAt ?? this.createdAt,
+      updatedAt: updatedAt ?? this.updatedAt,
+      department: department ?? this.department,
+    );
+  }
+
+  @override
+  bool operator ==(Object other) {
+    if (identical(this, other)) return true;
+    return other is Employee &&
+        other.id == id &&
+        other.companyId == companyId &&
+        other.departmentId == departmentId &&
+        other.firstName == firstName &&
+        other.lastName == lastName &&
+        other.email == email &&
+        other.role == role &&
+        other.annualSalary == annualSalary &&
+        other.currency == currency &&
+        other.status == status &&
+        other.joinedAt == joinedAt &&
+        other.exitedAt == exitedAt &&
+        other.avatarUrl == avatarUrl;
+  }
+
+  @override
+  int get hashCode => Object.hash(
+        id,
+        companyId,
+        departmentId,
+        firstName,
+        lastName,
+        email,
+        role,
+        annualSalary,
+        currency,
+        status,
+        joinedAt,
+        exitedAt,
+        avatarUrl,
+      );
+
   @override
   String toString() =>
-      'Employee(id: $id, name: $fullName, role: $role, salary: $annualSalary)';
+      'Employee(id: $id, name: $fullName, role: $role, '
+      'salary: $annualSalary, status: ${status.toJson()}, '
+      'companyId: $companyId)';
 }

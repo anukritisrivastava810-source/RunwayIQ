@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'dashboard_screen.dart';
 import '../features/company/data/repositories/company_repository.dart';
 import '../features/company/domain/models/company.dart';
 import '../features/treasury/data/repositories/treasury_repository.dart';
@@ -93,6 +94,7 @@ class _TreasuryScreenState extends State<TreasuryScreen> {
 
     if (result == true) {
       _loadTreasuryData();
+      DashboardScreen.notifyDataChanged();
     }
   }
 
@@ -170,6 +172,7 @@ class _TreasuryScreenState extends State<TreasuryScreen> {
       return Scaffold(
         body: _buildEmptyState(context),
         floatingActionButton: FloatingActionButton(
+          heroTag: 'treasury_fab_empty',
           onPressed: _openAddInvestment,
           backgroundColor: theme.colorScheme.primary,
           tooltip: 'Add Investment',
@@ -182,6 +185,7 @@ class _TreasuryScreenState extends State<TreasuryScreen> {
 
     return Scaffold(
       floatingActionButton: FloatingActionButton(
+        heroTag: 'treasury_fab',
         onPressed: _openAddInvestment,
         backgroundColor: theme.colorScheme.primary,
         tooltip: 'Add Investment',

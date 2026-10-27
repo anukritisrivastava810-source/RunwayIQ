@@ -3,6 +3,7 @@ import 'package:flutter_test/flutter_test.dart';
 import 'package:runway_iq/features/onboarding/presentation/steps/team_setup_step.dart';
 import 'package:runway_iq/features/onboarding/presentation/steps/financial_setup_step.dart';
 import 'package:runway_iq/features/onboarding/presentation/steps/treasury_step.dart';
+import 'package:runway_iq/features/employee/domain/models/employee.dart';
 
 void main() {
   group('TeamSetupStep Standalone Mode UI Tests', () {
@@ -46,6 +47,39 @@ void main() {
       expect(find.text('Email is required'), findsOneWidget);
       expect(find.text('Role is required'), findsOneWidget);
       expect(find.text('Salary is required'), findsOneWidget);
+    });
+
+    testWidgets('renders pre-populated form fields and Edit Employee title in edit mode', (tester) async {
+      final existingEmployee = Employee(
+        id: 'emp-edit-1',
+        companyId: 'test-comp-1',
+        departmentId: 'dept-1',
+        firstName: 'Alice',
+        lastName: 'Wonder',
+        email: 'alice@example.com',
+        role: 'Lead Architect',
+        annualSalary: 160000.0,
+        joinedAt: DateTime(2025, 5, 10),
+      );
+
+      await tester.pumpWidget(
+        MaterialApp(
+          home: TeamSetupStep(
+            companyId: 'test-comp-1',
+            companyCurrency: 'USD',
+            employee: existingEmployee,
+          ),
+        ),
+      );
+      await tester.pumpAndSettle();
+
+      expect(find.text('Edit Employee'), findsOneWidget);
+      expect(find.text('Update Employee'), findsOneWidget);
+      expect(find.text('Alice'), findsOneWidget);
+      expect(find.text('Wonder'), findsOneWidget);
+      expect(find.text('alice@example.com'), findsOneWidget);
+      expect(find.text('Lead Architect'), findsOneWidget);
+      expect(find.text('160000.0'), findsOneWidget);
     });
   });
 

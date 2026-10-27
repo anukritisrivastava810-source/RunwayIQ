@@ -16,6 +16,7 @@ router.use('/auth', authRoutes);
 router.use('/company', companyRoutes);
 router.use('/dashboard', dashboardRoutes);
 router.use('/employees', employeeRoutes);
+router.use('/employee', employeeRoutes);
 router.use('/departments', departmentRoutes);
 router.use('/expenses', expenseRoutes);
 router.use('/investor', investorRoutes);

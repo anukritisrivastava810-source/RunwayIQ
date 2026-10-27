@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import '../widgets/stats_card.dart';
+import 'dashboard_screen.dart';
 import '../features/company/data/repositories/company_repository.dart';
 import '../features/company/domain/models/company.dart';
 import '../features/employee/data/repositories/employee_repository.dart';
@@ -8,7 +9,14 @@ import '../features/onboarding/presentation/steps/team_setup_step.dart';
 import '../core/network/api_exceptions.dart';
 
 class EmployeesScreen extends StatefulWidget {
-  const EmployeesScreen({super.key});
+  final CompanyRepository? companyRepository;
+  final EmployeeRepository? employeeRepository;
+
+  const EmployeesScreen({
+    super.key,
+    this.companyRepository,
+    this.employeeRepository,
+  });
 
   @override
   State<EmployeesScreen> createState() => _EmployeesScreenState();
@@ -21,10 +29,28 @@ class _EmployeesScreenState extends State<EmployeesScreen> {
   Company? _activeCompany;
   List<Employee> _employees = [];
 
+  CompanyRepository get _companyRepository =>
+      widget.companyRepository ?? CompanyRepository();
+  EmployeeRepository get _employeeRepository =>
+      widget.employeeRepository ?? EmployeeRepository();
+
   @override
   void initState() {
     super.initState();
+    DashboardScreen.refreshNotifier.addListener(_onDataChanged);
     _loadEmployeeData();
+  }
+
+  @override
+  void dispose() {
+    DashboardScreen.refreshNotifier.removeListener(_onDataChanged);
+    super.dispose();
+  }
+
+  void _onDataChanged() {
+    if (mounted) {
+      _loadEmployeeData();
+    }
   }
 
   Future<void> _loadEmployeeData() async {
@@ -35,7 +61,7 @@ class _EmployeesScreenState extends State<EmployeesScreen> {
     });
 
     try {
-      final companies = await CompanyRepository().getCompanies();
+      final companies = await _companyRepository.getCompanies();
       if (companies.isEmpty) {
         _activeCompany = null;
         _employees = [];
@@ -43,7 +69,7 @@ class _EmployeesScreenState extends State<EmployeesScreen> {
         _activeCompany = companies.first;
         final companyId = _activeCompany!.id;
         if (companyId != null && companyId.isNotEmpty) {
-          _employees = await EmployeeRepository().getEmployeesByCompany(companyId);
+          _employees = await _employeeRepository.getEmployeesByCompany(companyId);
         } else {
           _employees = [];
         }
@@ -65,7 +91,7 @@ class _EmployeesScreenState extends State<EmployeesScreen> {
 
   Future<void> _openAddEmployee() async {
     if (_activeCompany == null) {
-      final companies = await CompanyRepository().getCompanies();
+      final companies = await _companyRepository.getCompanies();
       if (companies.isNotEmpty) {
         _activeCompany = companies.first;
       }
@@ -87,12 +113,97 @@ class _EmployeesScreenState extends State<EmployeesScreen> {
         builder: (_) => TeamSetupStep(
           companyId: _activeCompany!.id,
           companyCurrency: _activeCompany!.currency,
+          companyRepository: _companyRepository,
+          employeeRepository: _employeeRepository,
         ),
       ),
     );
 
     if (result == true) {
       _loadEmployeeData();
+      DashboardScreen.notifyDataChanged();
+    }
+  }
+
+  Future<void> _openEditEmployee(Employee employee) async {
+    final result = await Navigator.of(context).push<bool>(
+      MaterialPageRoute(
+        builder: (_) => TeamSetupStep(
+          companyId: _activeCompany?.id,
+          companyCurrency: _activeCompany?.currency,
+          employee: employee,
+          companyRepository: _companyRepository,
+          employeeRepository: _employeeRepository,
+        ),
+      ),
+    );
+
+    if (result == true) {
+      _loadEmployeeData();
+      DashboardScreen.notifyDataChanged();
+    }
+  }
+
+  Future<void> _confirmDeleteEmployee(Employee employee) async {
+    final confirmed = await showDialog<bool>(
+      context: context,
+      builder: (ctx) => AlertDialog(
+        title: const Text('Delete Employee'),
+        content: Text('Are you sure you want to remove ${employee.fullName}?'),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.of(ctx).pop(false),
+            child: const Text('Cancel'),
+          ),
+          TextButton(
+            style: TextButton.styleFrom(
+              foregroundColor: Theme.of(ctx).colorScheme.error,
+            ),
+            onPressed: () => Navigator.of(ctx).pop(true),
+            child: const Text('Delete'),
+          ),
+        ],
+      ),
+    );
+
+    if (confirmed == true && employee.id != null) {
+      setState(() {
+        _isLoading = true;
+      });
+      try {
+        await _employeeRepository.deleteEmployee(employee.id!);
+        if (mounted) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            SnackBar(content: Text('${employee.fullName} removed successfully')),
+          );
+        }
+        _loadEmployeeData();
+        DashboardScreen.notifyDataChanged();
+      } on ApiException catch (e) {
+        if (mounted) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            SnackBar(
+              content: Text(e.message),
+              backgroundColor: Theme.of(context).colorScheme.error,
+            ),
+          );
+          setState(() {
+            _isLoading = false;
+          });
+        }
+      } catch (e) {
+        if (mounted) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            SnackBar(
+              content: Text('Failed to delete employee: $e'),
+              backgroundColor: Theme.of(context).colorScheme.error,
+            ),
+          );
+          setState(() {
+            _isLoading = false;
+          });
+        }
+      }
     }
   }
 
@@ -156,6 +267,7 @@ class _EmployeesScreenState extends State<EmployeesScreen> {
       return Scaffold(
         body: _buildEmptyState(context),
         floatingActionButton: FloatingActionButton(
+          heroTag: 'employees_fab_empty',
           onPressed: _openAddEmployee,
           backgroundColor: theme.colorScheme.primary,
           tooltip: 'Add Employee',
@@ -166,6 +278,7 @@ class _EmployeesScreenState extends State<EmployeesScreen> {
 
     return Scaffold(
       floatingActionButton: FloatingActionButton(
+        heroTag: 'employees_fab',
         onPressed: _openAddEmployee,
         backgroundColor: theme.colorScheme.primary,
         tooltip: 'Add Employee',
@@ -228,15 +341,7 @@ class _EmployeesScreenState extends State<EmployeesScreen> {
                   separatorBuilder: (context, index) => const Divider(height: 1),
                   itemBuilder: (context, index) {
                     final emp = _employees[index];
-                    final deptSubtitle = emp.departmentName.isNotEmpty
-                        ? '${emp.role} • ${emp.departmentName}'
-                        : emp.role;
-                    return _buildEmployeeTile(
-                      context,
-                      emp.fullName,
-                      deptSubtitle,
-                      '${_formatCurrency(emp.annualSalary)}/yr',
-                    );
+                    return _buildEmployeeTile(context, emp);
                   },
                 ),
               ),
@@ -280,9 +385,14 @@ class _EmployeesScreenState extends State<EmployeesScreen> {
     );
   }
 
-  Widget _buildEmployeeTile(BuildContext context, String name, String role, String salary) {
+  Widget _buildEmployeeTile(BuildContext context, Employee emp) {
     final theme = Theme.of(context);
-    final initial = name.isNotEmpty ? name[0].toUpperCase() : '?';
+    final initial = emp.firstName.isNotEmpty ? emp.firstName[0].toUpperCase() : '?';
+    final deptSubtitle = emp.departmentName.isNotEmpty
+        ? '${emp.role} • ${emp.departmentName}'
+        : emp.role;
+    final salaryText = '${_formatCurrency(emp.annualSalary)}/yr';
+
     return ListTile(
       leading: CircleAvatar(
         backgroundColor: theme.colorScheme.primary.withValues(alpha: 0.1),
@@ -294,12 +404,50 @@ class _EmployeesScreenState extends State<EmployeesScreen> {
           ),
         ),
       ),
-      title: Text(name, style: const TextStyle(fontWeight: FontWeight.bold)),
-      subtitle: Text(role),
-      trailing: Text(
-        salary,
-        style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 15),
+      title: Text(emp.fullName, style: const TextStyle(fontWeight: FontWeight.bold)),
+      subtitle: Text(deptSubtitle),
+      trailing: Row(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          Text(
+            salaryText,
+            style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 15),
+          ),
+          PopupMenuButton<String>(
+            icon: const Icon(Icons.more_vert, size: 20),
+            onSelected: (value) {
+              if (value == 'edit') {
+                _openEditEmployee(emp);
+              } else if (value == 'delete') {
+                _confirmDeleteEmployee(emp);
+              }
+            },
+            itemBuilder: (context) => [
+              const PopupMenuItem(
+                value: 'edit',
+                child: Row(
+                  children: [
+                    Icon(Icons.edit_outlined, size: 18),
+                    SizedBox(width: 8),
+                    Text('Edit'),
+                  ],
+                ),
+              ),
+              PopupMenuItem(
+                value: 'delete',
+                child: Row(
+                  children: [
+                    Icon(Icons.delete_outline, size: 18, color: theme.colorScheme.error),
+                    const SizedBox(width: 8),
+                    Text('Delete', style: TextStyle(color: theme.colorScheme.error)),
+                  ],
+                ),
+              ),
+            ],
+          ),
+        ],
       ),
+      onTap: () => _openEditEmployee(emp),
     );
   }
 }
