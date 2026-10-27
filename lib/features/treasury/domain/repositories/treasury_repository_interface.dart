@@ -1,4 +1,5 @@
 import '../models/treasury_investment.dart';
+import '../models/market_quote.dart';
 
 abstract class ITreasuryRepository {
   Future<TreasuryInvestment> createTreasuryInvestment(TreasuryInvestment investment);
@@ -7,4 +8,5 @@ abstract class ITreasuryRepository {
   Future<List<TreasuryInvestment>> getTreasuryInvestmentsByCompany(String companyId);
   Future<TreasuryInvestment> updateTreasuryInvestment(String id, TreasuryInvestment investment);
   Future<void> deleteTreasuryInvestment(String id);
+  Future<MarketQuote> getInvestmentQuote(String id, {bool? forceRefresh});
 }

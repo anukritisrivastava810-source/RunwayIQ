@@ -154,5 +154,101 @@ void main() {
         throwsA(isA<NotFoundException>()),
       );
     });
+
+    test('Market-priced investment serialization preserves ticker, units, purchasePrice, and does not populate currentPrice with purchasePrice', () {
+      final stockInv = TreasuryInvestment(
+        companyId: 'comp-1',
+        assetType: AssetType.stock,
+        name: 'Apple Inc.',
+        ticker: 'AAPL',
+        units: 50.0,
+        purchasePrice: 150.0,
+        totalInvested: 7500.0,
+        currency: TreasuryCurrency.usd,
+        investmentDate: DateTime(2026, 3, 1),
+      );
+
+      final json = stockInv.toJson();
+      expect(json['assetType'], 'STOCK');
+      expect(json['name'], 'Apple Inc.');
+      expect(json['ticker'], 'AAPL');
+      expect(json['units'], 50.0);
+      expect(json['purchasePrice'], 150.0);
+      expect(json['totalInvested'], 7500.0);
+      expect(json['currentPrice'], isNull); // Never populated from purchasePrice!
+      expect(json['currentValue'], isNull);
+
+      // Round-trip verification
+      final restored = TreasuryInvestment.fromJson(json);
+      expect(restored.ticker, 'AAPL');
+      expect(restored.units, 50.0);
+      expect(restored.purchasePrice, 150.0);
+      expect(restored.totalInvested, 7500.0);
+      expect(restored.currentPrice, isNull);
+    });
+
+    test('Non-market investment serialization excludes ticker and units', () {
+      final bondInv = TreasuryInvestment(
+        companyId: 'comp-1',
+        assetType: AssetType.bond,
+        name: 'US Treasury Note',
+        ticker: null,
+        units: null,
+        purchasePrice: 20000.0,
+        totalInvested: 20000.0,
+        currency: TreasuryCurrency.usd,
+        investmentDate: DateTime(2026, 1, 1),
+      );
+
+      final json = bondInv.toJson();
+      expect(json['assetType'], 'BOND');
+      expect(json.containsKey('ticker'), isFalse);
+      expect(json.containsKey('units'), isFalse);
+      expect(json['purchasePrice'], 20000.0);
+      expect(json['totalInvested'], 20000.0);
+    });
+
+    test('TreasuryRepository updates investment via PUT /treasury/:id', () async {
+      final mockClient = MockApiClient();
+      final repo = TreasuryRepository(apiClient: mockClient);
+
+      mockClient.putResponse = {
+        'data': {
+          'id': 'inv-123',
+          'companyId': 'comp-1',
+          'assetType': 'STOCK',
+          'name': 'Apple Stock Holding',
+          'ticker': 'AAPL',
+          'units': 75.0,
+          'purchasePrice': 160.0,
+          'totalInvested': 12000.0,
+          'currency': 'USD',
+          'investmentDate': '2026-03-01T00:00:00.000Z',
+        }
+      };
+
+      final updated = await repo.updateTreasuryInvestment(
+        'inv-123',
+        TreasuryInvestment(
+          id: 'inv-123',
+          companyId: 'comp-1',
+          assetType: AssetType.stock,
+          name: 'Apple Stock Holding',
+          ticker: 'AAPL',
+          units: 75.0,
+          purchasePrice: 160.0,
+          totalInvested: 12000.0,
+          investmentDate: DateTime(2026, 3, 1),
+        ),
+      );
+
+      expect(updated.id, 'inv-123');
+      expect(updated.ticker, 'AAPL');
+      expect(updated.units, 75.0);
+      expect(mockClient.lastPath, '/treasury/inv-123');
+      expect(mockClient.lastData['units'], 75.0);
+      expect(mockClient.lastData['ticker'], 'AAPL');
+      expect(mockClient.lastData['totalInvested'], 12000.0);
+    });
   });
 }

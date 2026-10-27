@@ -14,9 +14,10 @@ export class TreasuryRepository {
   }
 
   async update(id, data) {
+    const { id: _ignoredId, ...updateData } = data;
     return await prisma.treasuryInvestment.update({
       where: { id },
-      data,
+      data: updateData,
     });
   }
 

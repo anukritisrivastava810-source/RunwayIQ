@@ -9,8 +9,8 @@ export class ScenarioRepository {
     return await prisma.scenario.findUnique({ where: { id } });
   }
 
-  async findAll(skip, take) {
-    return await prisma.scenario.findMany({ skip, take });
+  async findAll(skip, take, where = {}) {
+    return await prisma.scenario.findMany({ skip, take, where });
   }
 
   async update(id, data) {

@@ -1,6 +1,7 @@
 import '../../../../core/network/api_client.dart';
 import '../../../../core/network/api_exceptions.dart';
 import '../../domain/models/treasury_investment.dart';
+import '../../domain/models/market_quote.dart';
 import '../../domain/repositories/treasury_repository_interface.dart';
 
 class TreasuryRepository implements ITreasuryRepository {
@@ -82,6 +83,23 @@ class TreasuryRepository implements ITreasuryRepository {
   Future<void> deleteTreasuryInvestment(String id) async {
     try {
       await _apiClient.delete('/treasury/$id');
+    } on ApiException {
+      rethrow;
+    } catch (e) {
+      throw UnknownException(e.toString());
+    }
+  }
+
+  @override
+  Future<MarketQuote> getInvestmentQuote(String id, {bool? forceRefresh}) async {
+    try {
+      final queryParams = forceRefresh == true ? {'forceRefresh': 'true'} : null;
+      final response = await _apiClient.get(
+        '/treasury/$id/quote',
+        queryParameters: queryParams,
+      );
+      final map = _extractMap(response);
+      return MarketQuote.fromJson(map);
     } on ApiException {
       rethrow;
     } catch (e) {

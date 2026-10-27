@@ -33,6 +33,12 @@ enum AssetType {
   }
 
   String toJson() => value;
+
+  bool get isMarketPriced =>
+      this == AssetType.stock ||
+      this == AssetType.etf ||
+      this == AssetType.crypto ||
+      this == AssetType.mutualFund;
 }
 
 enum TreasuryCurrency {
